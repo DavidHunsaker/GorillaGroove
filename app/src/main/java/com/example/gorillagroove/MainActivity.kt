@@ -1,6 +1,6 @@
 package com.example.gorillagroove
 
-import android.arch.persistence.room.RoomDatabase
+import android.os.AsyncTask
 import android.os.Bundle
 import android.support.design.widget.NavigationView
 import android.support.v4.view.GravityCompat
@@ -29,7 +29,6 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
 
     private lateinit var passwordField: EditText
     private lateinit var emailField: EditText
-    private lateinit var database: RoomDatabase
 
 
     override fun onResponse(response: String) {
@@ -45,12 +44,14 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
         userName = response["username"].toString()
         email = response["email"].toString()
 
-        val user = repository.findUser(email)
+        AsyncTask.execute {
+            val user = repository.findUser(email)
 
-        if (user.value == null) {
-            repository.createUser(email, userName, token)
-        } else repository.updateToken(user.value!!.id, token)
+            if (user == null) {
+                repository.createUser(userName, email, token)
+            } else repository.updateToken(user.id, token)
 
+        }
         Log.i(
             "Main Activity",
             "What's up dude, we just snagged ourselves some token: $token and userName: $userName"

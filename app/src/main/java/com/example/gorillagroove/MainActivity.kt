@@ -6,13 +6,17 @@ import android.support.design.widget.NavigationView
 import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
+import android.support.v7.widget.LinearLayoutManager
+import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.widget.Adapter
 import android.widget.EditText
 import android.widget.Toast
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
+import com.example.gorillagroove.dto.SongDTO
 import kotlinx.android.synthetic.main.activity_main.*
 import kotlinx.android.synthetic.main.app_bar_main.*
 import kotlinx.android.synthetic.main.content_main.*
@@ -29,6 +33,8 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
 
     private lateinit var passwordField: EditText
     private lateinit var emailField: EditText
+
+    private lateinit var playlistAdapter: PlaylistAdapter
 
 
     override fun onResponse(response: String) {
@@ -127,10 +133,10 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
         // Handle navigation view item clicks here.
         when (item.itemId) {
             R.id.nav_camera -> {
-
+                setContentView(R.layout.activity_main)
             }
             R.id.nav_gallery -> {
-
+                setContentView(R.layout.fragment_user_playlist)
             }
             R.id.nav_slideshow -> {
 

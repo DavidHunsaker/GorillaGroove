@@ -1,6 +1,5 @@
 package com.example.gorillagroove.db.repository
 
-import android.arch.lifecycle.LiveData
 import android.util.Log
 import com.example.gorillagroove.db.dao.UserDao
 import com.example.gorillagroove.db.model.User

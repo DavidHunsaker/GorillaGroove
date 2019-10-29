@@ -6,31 +6,13 @@
 
     <group android:checkableBehavior="single">
         <item
-                android:id="@+id/nav_camera"
+                android:id="@+id/nav_login"
                 android:icon="@drawable/ic_menu_camera"
-                android:title="Import"/>
+                android:title="@string/login"/>
         <item
-                android:id="@+id/nav_gallery"
+                android:id="@+id/nav_playlists"
                 android:icon="@drawable/ic_menu_gallery"
-                android:title="Gallery"/>
-        <item
-                android:id="@+id/nav_slideshow"
-                android:icon="@drawable/ic_menu_slideshow"
-                android:title="Slideshow"/>
-        <item
-                android:id="@+id/nav_manage"
-                android:icon="@drawable/ic_menu_manage"
-                android:title="Tools"/>
+                android:title="@string/playlists"/>
     </group>
-
-
-    <item android:title="Playlist">
-        <menu>
-            <item
-                    android:title="Playlist 1"/>
-            <item
-                    android:title="Playlist 2"/>
-        </menu>
-    </item>
 
 </menu>

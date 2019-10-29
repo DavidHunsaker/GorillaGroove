@@ -1,10 +1,11 @@
-package com.example.gorillagroove
+package com.example.gorillagroove.adapters
 
 import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import com.example.gorillagroove.R
 import com.example.gorillagroove.dto.SongDTO
 
 class PlaylistAdapter(private val values: List<SongDTO>) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {

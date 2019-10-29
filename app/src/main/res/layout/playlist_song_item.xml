@@ -1,38 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
+<android.support.v7.widget.LinearLayoutCompat xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:tools="http://schemas.android.com/tools"
+        android:orientation="horizontal"
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-    <TextView
-            android:id="@+id/tv_song_title"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="20dp"
-            android:text="Song Title Goes Here"
-            android:textSize="18sp"
-            app:layout_constraintBottom_toTopOf="@id/tv_artist_name"
-            app:layout_constraintLeft_toRightOf="@id/imageView2"
-            app:layout_constraintTop_toTopOf="parent" />
-
-    <TextView
-            android:id="@+id/tv_artist_name"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:padding="20dp"
-            android:textSize="18sp"
-            android:text="Artist Name Goes Here"
-            app:layout_constraintLeft_toRightOf="@id/imageView2"
-            app:layout_constraintTop_toBottomOf="@id/tv_song_title" />
+        android:layout_height="wrap_content">
 
     <ImageView
             android:id="@+id/imageView2"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toLeftOf="@id/tv_song_title"
-            app:layout_constraintTop_toTopOf="parent"
+            android:layout_width="60dp"
+            android:layout_height="60dp"
             tools:srcCompat="@tools:sample/avatars" />
 
-</android.support.constraint.ConstraintLayout>
+    <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+                android:id="@+id/tv_song_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="6dp"
+                android:text="Song Title Goes Here"
+                android:textSize="12sp" />
+
+        <TextView
+                android:id="@+id/tv_artist_name"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:padding="6dp"
+                android:text="Artist Name Goes Here"
+                android:textSize="12sp" />
+    </LinearLayout>
+
+</android.support.v7.widget.LinearLayoutCompat>

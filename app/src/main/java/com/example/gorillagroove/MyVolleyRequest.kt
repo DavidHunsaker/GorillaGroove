@@ -80,6 +80,27 @@ class MyVolleyRequest {
         addToRequestQueue(getRequest)
     }
 
+    fun getPlaylistRequest(url: String, token: String){
+        val postRequest = object :
+            JsonObjectRequest(GET, url, null, Response.Listener { response ->
+                Log.d(TAG, response.toString())
+                iVolley!!.onPlaylistRequestResponse(response)
+            },
+                Response.ErrorListener { error -> VolleyLog.d(TAG, "Error: " + error.message) }
+            ) {
+
+            @Throws(AuthFailureError::class)
+            override fun getHeaders(): Map<String, String> {
+                val headers = HashMap<String, String>()
+                headers["Content-Type"] = "application/json; charset=utf-8"
+                headers["Authorization"] = "Bearer $token"
+                headers["Accept-Encoding"] = "gzip, deflate"
+                return headers
+            }
+        }
+        addToRequestQueue(postRequest)
+    }
+
 
     fun makeJsonObjRequest(url: String) {
 

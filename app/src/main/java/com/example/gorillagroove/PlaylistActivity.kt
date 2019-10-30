@@ -7,15 +7,16 @@ import android.os.AsyncTask
 import android.os.Bundle
 import android.support.design.widget.NavigationView
 import android.support.v4.view.GravityCompat
+import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.Toast
 import com.example.gorillagroove.adapters.PlaylistAdapter
+import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.SongDTO
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
@@ -29,7 +30,6 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
 
     var token: String = ""
     var userName: String = ""
-    var email: String = ""
 
     private lateinit var repository: UserRepository
 
@@ -43,33 +43,38 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
         Toast.makeText(this@PlaylistActivity, response, Toast.LENGTH_LONG).show()
     }
 
-    override fun onPlaylistRequestResponse(response: JSONObject) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+    override fun onLoginResponse(response: JSONObject) {
+        TODO("not implemented")
     }
 
-    override fun onLoginResponse(response: JSONObject) {
-        token = response["token"].toString()
-        userName = response["username"].toString()
-        email = response["email"].toString()
-
-        AsyncTask.execute {
-            val user = repository.findUser(email)
-
-            if (user == null) {
-                repository.createUser(userName, email, token)
-            } else repository.updateToken(user.id, token)
-
-        }
-        Log.i(
-            "Main Activity",
-            "What's up dude, we just snagged ourselves some token: $token and userName: $userName"
-        )
+    override fun onPlaylistRequestResponse(response: JSONObject) {
+        println(response.toString())
+        val content = response["content"]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.fragment_user_playlist)
+        setContentView(R.layout.activity_playlist)
         setSupportActionBar(toolbar)
+
+        repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
+
+        val toggle = ActionBarDrawerToggle(
+            this,
+            drawer_layout,
+            toolbar,
+            R.string.navigation_drawer_open,
+            R.string.navigation_drawer_close
+        )
+        drawer_layout.addDrawerListener(toggle)
+        toggle.syncState()
+
+        AsyncTask.execute {
+            token = repository.findUser("test@gorilla.groove")!!.token!!
+        }
+
+        MyVolleyRequest.getInstance(this@PlaylistActivity, this@PlaylistActivity)
+            .getPlaylistRequest("http://gorillagroove.net/api/playlist/track?playlistId=49&size=75&page=0", token)
 
         val songs = listOf(
             SongDTO(
@@ -90,15 +95,7 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
         recyclerView.layoutManager = LinearLayoutManager(this)
         recyclerView.adapter = PlaylistAdapter(songs)
 
-//        nav_view.setNavigationItemSelectedListener(this)
-    }
-
-    private fun credentialsToMap(email: String, password: String): HashMap<String, String> {
-        val credentials = HashMap<String, String>()
-        credentials["email"] = email
-        credentials["password"] = password
-
-        return credentials
+        nav_view.setNavigationItemSelectedListener(this)
     }
 
     override fun onBackPressed() {
@@ -137,7 +134,6 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
                 startActivity(intent)
             }
         }
-
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
     }

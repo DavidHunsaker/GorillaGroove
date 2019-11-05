@@ -15,6 +15,8 @@ import android.widget.Toast
 import com.example.gorillagroove.adapters.PlaylistAdapter
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
+import com.example.gorillagroove.volleys.AuthenticationResponses
+import com.example.gorillagroove.volleys.AuthenticationVolley
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
@@ -22,8 +24,8 @@ import kotlinx.android.synthetic.main.content_main.btn_login
 import org.json.JSONObject
 
 
-class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationItemSelectedListener {
-
+class MainActivity : AppCompatActivity(), AuthenticationVolley,
+    NavigationView.OnNavigationItemSelectedListener {
     var token: String = ""
     var userName: String = ""
     var email: String = ""
@@ -34,15 +36,6 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
     private lateinit var emailField: EditText
 
     private lateinit var playlistAdapter: PlaylistAdapter
-
-
-    override fun onResponse(response: String) {
-        Toast.makeText(this@MainActivity, response, Toast.LENGTH_LONG).show()
-    }
-
-    override fun onPlaylistRequestResponse(response: JSONObject) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
 
     override fun onLoginResponse(response: JSONObject) {
         token = response["token"].toString()
@@ -61,6 +54,10 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
             "Main Activity",
             "What's up dude, we just snagged ourselves some token: $token and userName: $userName"
         )
+    }
+
+    override fun onLogoutResponse(response: JSONObject) {
+        Toast.makeText(this@MainActivity, "Successfully Logged out", Toast.LENGTH_LONG).show()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,8 +86,8 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
             val credentials =
                 credentialsToMap(emailField.text.toString(), passwordField.text.toString())
 
-            MyVolleyRequest.getInstance(this@MainActivity, this@MainActivity)
-                .postRequest("http://gorillagroove.net/api/authentication/login", credentials)
+            AuthenticationResponses.getInstance(this@MainActivity, this@MainActivity)
+                .loginRequest("http://gorillagroove.net/api/authentication/login", credentials)
         }
 
         nav_view.setNavigationItemSelectedListener(this)
@@ -122,8 +119,13 @@ class MainActivity : AppCompatActivity(), IVolley, NavigationView.OnNavigationIt
         // Handle action bar item clicks here. The action bar will
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
-       return when (item.itemId) {
-            R.id.action_settings -> true
+        if (item.itemId == R.id.action_settings_logout) {
+            AuthenticationResponses.getInstance(this@MainActivity, this@MainActivity)
+                .logoutRequest("http://gorillagroove.net/api/authentication/logout")
+        }
+
+        return when (item.itemId) {
+            R.id.action_settings_logout -> true
             else -> super.onOptionsItemSelected(item)
         }
     }

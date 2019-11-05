@@ -80,13 +80,33 @@ class MyVolleyRequest {
         addToRequestQueue(getRequest)
     }
 
+    fun getTracksRequest(url: String, token: String){
+        Log.d(TAG, "making request to $url")
+        val postRequest = object:
+        JsonObjectRequest(GET, url, null, Response.Listener { response ->
+            Log.d(TAG, response.toString())
+            iVolley!!.onResponse(response)
+        },
+            Response.ErrorListener { error -> VolleyLog.d(TAG, "Error: ${error.message}") }
+        ){
+            @Throws(AuthFailureError::class)
+            override fun getHeaders(): Map<String, String> {
+                val headers = HashMap<String, String>()
+                headers["Content-Type"] = "application/json"
+                headers["Authorization"] = "Bearer $token"
+                return headers
+            }
+        }
+        addToRequestQueue(postRequest)
+    }
+
     fun getPlaylistRequest(url: String, token: String){
         val postRequest = object :
             JsonObjectRequest(GET, url, null, Response.Listener { response ->
                 Log.d(TAG, response.toString())
                 iVolley!!.onPlaylistRequestResponse(response)
             },
-                Response.ErrorListener { error -> VolleyLog.d(TAG, "Error: " + error.message) }
+                Response.ErrorListener { error -> VolleyLog.d(TAG, "Error: ${error.message}") }
             ) {
 
             @Throws(AuthFailureError::class)
@@ -129,7 +149,7 @@ class MyVolleyRequest {
     }
 
     //POST METHOD with params
-    fun postRequest(url: String, params: Map<String, String>) {
+    fun loginRequest(url: String, params: Map<String, String>) {
         val postRequest = object :
             JsonObjectRequest(POST, url, JSONObject(params), Response.Listener { response ->
                 Log.d(TAG, response.toString())

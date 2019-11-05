@@ -1,6 +1,6 @@
 package com.example.gorillagroove.dto
 
-data class SongDTO(
+data class SongRequest(
     val title: String,
     val artist: String,
     val trackLink: String?,

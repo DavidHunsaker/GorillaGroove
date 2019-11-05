@@ -14,11 +14,10 @@ import android.support.v7.widget.RecyclerView
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
-import android.widget.Toast
 import com.example.gorillagroove.adapters.PlaylistAdapter
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
-import com.example.gorillagroove.dto.SongDTO
+import com.example.gorillagroove.dto.SongRequest
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
@@ -39,8 +38,13 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
     private lateinit var playlistAdapter: PlaylistAdapter
 
 
+    override fun onResponse(response: JSONObject) {
+//        Toast.makeText(this@PlaylistActivity, response.toString(), Toast.LENGTH_LONG).show()
+        println(response.toString())
+    }
+
     override fun onResponse(response: String) {
-        Toast.makeText(this@PlaylistActivity, response, Toast.LENGTH_LONG).show()
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
     override fun onLoginResponse(response: JSONObject) {
@@ -49,7 +53,6 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
 
     override fun onPlaylistRequestResponse(response: JSONObject) {
         println(response.toString())
-        val content = response["content"]
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,25 +72,29 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
+        // TODO: this needs to be a blocking call. Need to figure this out
         AsyncTask.execute {
             token = repository.findUser("test@gorilla.groove")!!.token!!
         }
+
+        // TODO: Fix this janky mess!!
+        while(this.token == "") { Thread.sleep(150) }
 
         MyVolleyRequest.getInstance(this@PlaylistActivity, this@PlaylistActivity)
             .getPlaylistRequest("http://gorillagroove.net/api/playlist/track?playlistId=49&size=75&page=0", token)
 
         val songs = listOf(
-            SongDTO(
+            SongRequest(
                 "Wet Sand",
                 "Red Hot Chili Peppers",
-                "",
-                "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fstudiosol-a.akamaihd.net%2Fuploadfile%2Fletras%2Falbuns%2Fe%2Fe%2Ff%2Fe%2F229761441219734-tb_180.jpg&f=1&nofb=1"
+                null,
+                null
             ),
-            SongDTO(
+            SongRequest(
                 "Fuck Gravity",
                 "Virtual Riot",
-                "",
-                "https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fi.ytimg.com%2Fvi%2FToIyuChbHK4%2Fhqdefault.jpg%3Fsqp%3D-oaymwEiCMQBEG5IWvKriqkDFQgBFQAAAAAYASUAAMhCPQCAokN4AQ%3D%3D%26rs%3DAOn4CLC2Guth45n6F_Wbu03yIOePggx-Ew&f=1&nofb=1"
+                null,
+                null
             )
         )
 
@@ -117,7 +124,7 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         return when (item.itemId) {
-            R.id.action_settings -> true
+            R.id.action_settings_logout -> true
             else -> super.onOptionsItemSelected(item)
         }
     }

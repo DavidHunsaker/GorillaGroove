@@ -6,9 +6,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.example.gorillagroove.R
-import com.example.gorillagroove.dto.SongDTO
+import com.example.gorillagroove.dto.SongRequest
 
-class PlaylistAdapter(private val values: List<SongDTO>) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
+class PlaylistAdapter(private val values: List<SongRequest>) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val itemView = LayoutInflater.from(parent.context).inflate(R.layout.playlist_song_item, parent, false)
         return ViewHolder(itemView)

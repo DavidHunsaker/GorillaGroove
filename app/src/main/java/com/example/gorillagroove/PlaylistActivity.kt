@@ -3,7 +3,6 @@ package com.example.gorillagroove
 // TODO: Make this a fragment you lazy ho
 
 import android.content.Intent
-import android.os.AsyncTask
 import android.os.Bundle
 import android.support.design.widget.NavigationView
 import android.support.v4.view.GravityCompat
@@ -13,27 +12,32 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.Menu
 import android.view.MenuItem
-import android.widget.EditText
 import com.example.gorillagroove.adapters.PlaylistAdapter
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
+import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.SongRequest
+import com.example.gorillagroove.dto.Playlist
+import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 
 class PlaylistActivity : AppCompatActivity(), IVolley,
-    NavigationView.OnNavigationItemSelectedListener {
+    NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope() {
 
     var token: String = ""
     var userName: String = ""
+    val om = ObjectMapper()
 
     private lateinit var repository: UserRepository
-
-    private lateinit var passwordField: EditText
-    private lateinit var emailField: EditText
 
     private lateinit var playlistAdapter: PlaylistAdapter
 
@@ -52,7 +56,10 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
     }
 
     override fun onPlaylistRequestResponse(response: JSONObject) {
-        println(response.toString())
+        val content: String = response.get("content").toString()
+
+        val playlist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java)
+        playlist.forEach { println(it) } // FIXME
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -72,16 +79,16 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
-        // TODO: this needs to be a blocking call. Need to figure this out
-        AsyncTask.execute {
-            token = repository.findUser("test@gorilla.groove")!!.token!!
+        launch {
+            getUserToken()
+
+            MyVolleyRequest.getInstance(this@PlaylistActivity, this@PlaylistActivity)
+                .getPlaylistRequest(
+                    "http://gorillagroove.net/api/playlist/track?playlistId=49&size=75&page=0",
+                    token
+                )
+
         }
-
-        // TODO: Fix this janky mess!!
-        while(this.token == "") { Thread.sleep(150) }
-
-        MyVolleyRequest.getInstance(this@PlaylistActivity, this@PlaylistActivity)
-            .getPlaylistRequest("http://gorillagroove.net/api/playlist/track?playlistId=49&size=75&page=0", token)
 
         val songs = listOf(
             SongRequest(
@@ -104,6 +111,22 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
 
         nav_view.setNavigationItemSelectedListener(this)
     }
+
+    private suspend fun getUserToken() {
+        return withContext(Dispatchers.Default) {
+            val user = repository.findUser("test@gorilla.groove")
+            if (user != null) {
+                token = user.token!!
+                userName = user.userName
+            } else {
+                val intent = Intent(applicationContext, MainActivity::class.java)
+                finishActivity(0)
+                startActivity(intent)
+            }
+            return@withContext
+        }
+    }
+
 
     override fun onBackPressed() {
         if (drawer_layout.isDrawerOpen(GravityCompat.START)) {

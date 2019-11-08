@@ -1,6 +1,12 @@
 package com.example.gorillagroove.dto
 
+import com.fasterxml.jackson.databind.annotation.JsonSerialize
+
+@JsonSerialize
+data class Playlist(val playlist: List<PlaylistSongDTO> = emptyList())
+
+@JsonSerialize
 data class PlaylistSongDTO(
-    val playlistTrackId: Long,
-    val playlistSongRequest: SongRequest
+    val id: Long = 0,
+    val track: Track = Track()
 )

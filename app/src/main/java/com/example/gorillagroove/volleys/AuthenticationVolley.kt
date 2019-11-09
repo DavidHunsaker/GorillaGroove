@@ -20,7 +20,7 @@ interface AuthenticationVolley {
     fun onLogoutResponse(response: JSONObject)
 }
 
-class AuthenticationResponses {
+class AuthenticationRequests {
     private var mRequestQueue: RequestQueue? = null
     private var context: Context? = null
     private var authenticationVolley: AuthenticationVolley? = null
@@ -96,12 +96,12 @@ class AuthenticationResponses {
     }
 
     companion object {
-        private var mInstance: AuthenticationResponses? = null
+        private var mInstance: AuthenticationRequests? = null
 
         @Synchronized
-        fun getInstance(context: Context, authenticationVolley: AuthenticationVolley): AuthenticationResponses {
+        fun getInstance(context: Context, authenticationVolley: AuthenticationVolley): AuthenticationRequests {
             if (mInstance == null) {
-                mInstance = AuthenticationResponses(context, authenticationVolley)
+                mInstance = AuthenticationRequests(context, authenticationVolley)
             }
             return mInstance!!
         }

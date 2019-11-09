@@ -1,6 +1,6 @@
-package com.example.gorillagroove
+package com.example.gorillagroove.activities
 
-// TODO: Make this a fragment you lazy ho
+// TODO: Make this a fragment
 
 import android.content.Intent
 import android.os.Bundle
@@ -12,12 +12,13 @@ import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
 import android.view.Menu
 import android.view.MenuItem
+import com.example.gorillagroove.R
 import com.example.gorillagroove.adapters.PlaylistAdapter
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
-import com.example.gorillagroove.dto.SongRequest
-import com.example.gorillagroove.dto.Playlist
+import com.example.gorillagroove.volleys.PlaylistRequests
+import com.example.gorillagroove.volleys.PlaylistVolley
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
@@ -30,36 +31,23 @@ import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 
-class PlaylistActivity : AppCompatActivity(), IVolley,
+class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope() {
 
-    var token: String = ""
-    var userName: String = ""
-    val om = ObjectMapper()
+    private var token: String = ""
+    private var userName: String = ""
+    private var activePlaylist: List<PlaylistSongDTO> = emptyList()
+    private val om = ObjectMapper()
+
+    private lateinit var recyclerView: RecyclerView
 
     private lateinit var repository: UserRepository
-
-    private lateinit var playlistAdapter: PlaylistAdapter
-
-
-    override fun onResponse(response: JSONObject) {
-//        Toast.makeText(this@PlaylistActivity, response.toString(), Toast.LENGTH_LONG).show()
-        println(response.toString())
-    }
-
-    override fun onResponse(response: String) {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
-    }
-
-    override fun onLoginResponse(response: JSONObject) {
-        TODO("not implemented")
-    }
 
     override fun onPlaylistRequestResponse(response: JSONObject) {
         val content: String = response.get("content").toString()
 
-        val playlist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java)
-        playlist.forEach { println(it) } // FIXME
+        activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
+        recyclerView.adapter = PlaylistAdapter(activePlaylist)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -68,6 +56,8 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
         setSupportActionBar(toolbar)
 
         repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
+        token = intent.getStringExtra("token")
+        userName = intent.getStringExtra("username")
 
         val toggle = ActionBarDrawerToggle(
             this,
@@ -80,53 +70,20 @@ class PlaylistActivity : AppCompatActivity(), IVolley,
         toggle.syncState()
 
         launch {
-            getUserToken()
-
-            MyVolleyRequest.getInstance(this@PlaylistActivity, this@PlaylistActivity)
-                .getPlaylistRequest(
-                    "http://gorillagroove.net/api/playlist/track?playlistId=49&size=75&page=0",
-                    token
-                )
-
+            withContext(Dispatchers.IO) {
+                PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
+                    .getPlaylistRequest(
+                        "http://gorillagroove.net/api/playlist/track?playlistId=49",
+                        token
+                    )
+            }
         }
 
-        val songs = listOf(
-            SongRequest(
-                "Wet Sand",
-                "Red Hot Chili Peppers",
-                null,
-                null
-            ),
-            SongRequest(
-                "Fuck Gravity",
-                "Virtual Riot",
-                null,
-                null
-            )
-        )
-
-        val recyclerView: RecyclerView = findViewById(R.id.rv_playlist)
+        recyclerView = findViewById(R.id.rv_playlist)
         recyclerView.layoutManager = LinearLayoutManager(this)
-        recyclerView.adapter = PlaylistAdapter(songs)
 
         nav_view.setNavigationItemSelectedListener(this)
     }
-
-    private suspend fun getUserToken() {
-        return withContext(Dispatchers.Default) {
-            val user = repository.findUser("test@gorilla.groove")
-            if (user != null) {
-                token = user.token!!
-                userName = user.userName
-            } else {
-                val intent = Intent(applicationContext, MainActivity::class.java)
-                finishActivity(0)
-                startActivity(intent)
-            }
-            return@withContext
-        }
-    }
-
 
     override fun onBackPressed() {
         if (drawer_layout.isDrawerOpen(GravityCompat.START)) {

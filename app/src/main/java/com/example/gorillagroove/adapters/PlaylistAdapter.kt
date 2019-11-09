@@ -6,9 +6,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
 import com.example.gorillagroove.R
+import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.SongRequest
 
-class PlaylistAdapter(private val values: List<SongRequest>) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
+class PlaylistAdapter(private val values: List<PlaylistSongDTO>) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val itemView = LayoutInflater.from(parent.context).inflate(R.layout.playlist_song_item, parent, false)
         return ViewHolder(itemView)
@@ -17,8 +18,8 @@ class PlaylistAdapter(private val values: List<SongRequest>) : RecyclerView.Adap
     override fun getItemCount() = values.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.songTitle?.text = values[position].title
-        holder.artist?.text = values[position].artist
+        holder.songTitle?.text = values[position].track.name
+        holder.artist?.text = values[position].track.artist
     }
 
     class ViewHolder(itemView: View?): RecyclerView.ViewHolder(itemView!!) {

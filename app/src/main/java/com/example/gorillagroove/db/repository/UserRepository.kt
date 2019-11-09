@@ -3,7 +3,6 @@ package com.example.gorillagroove.db.repository
 import android.util.Log
 import com.example.gorillagroove.db.dao.UserDao
 import com.example.gorillagroove.db.model.User
-import kotlin.coroutines.coroutineContext
 
 const val userRepositoryTag = "User Repository"
 

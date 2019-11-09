@@ -1,7 +1,6 @@
-package com.example.gorillagroove
+package com.example.gorillagroove.activities
 
 import android.content.Intent
-import android.os.AsyncTask
 import android.os.Bundle
 import android.support.design.widget.NavigationView
 import android.support.v4.view.GravityCompat
@@ -12,20 +11,28 @@ import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.Toast
+import com.example.gorillagroove.R
 import com.example.gorillagroove.adapters.PlaylistAdapter
 import com.example.gorillagroove.db.GroovinDB
+import com.example.gorillagroove.db.model.User
 import com.example.gorillagroove.db.repository.UserRepository
-import com.example.gorillagroove.volleys.AuthenticationResponses
+import com.example.gorillagroove.volleys.AuthenticationRequests
 import com.example.gorillagroove.volleys.AuthenticationVolley
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
 import kotlinx.android.synthetic.main.content_main.btn_login
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.json.JSONObject
 
 
 class MainActivity : AppCompatActivity(), AuthenticationVolley,
-    NavigationView.OnNavigationItemSelectedListener {
+    NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope() {
+    var user: User? = null
     var token: String = ""
     var userName: String = ""
     var email: String = ""
@@ -42,13 +49,14 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
         userName = response["username"].toString()
         email = response["email"].toString()
 
-        AsyncTask.execute {
-            val user = repository.findUser(email)
+        launch {
+            withContext(Dispatchers.IO) {
+                user = repository.findUser(email)
 
-            if (user == null) {
-                repository.createUser(userName, email, token)
-            } else repository.updateToken(user.id, token)
-
+                if (user == null) {
+                    repository.createUser(userName, email, token)
+                } else repository.updateToken(user!!.id, token)
+            }
         }
         Log.i(
             "Main Activity",
@@ -86,7 +94,7 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
             val credentials =
                 credentialsToMap(emailField.text.toString(), passwordField.text.toString())
 
-            AuthenticationResponses.getInstance(this@MainActivity, this@MainActivity)
+            AuthenticationRequests.getInstance(this@MainActivity, this@MainActivity)
                 .loginRequest("http://gorillagroove.net/api/authentication/login", credentials)
         }
 
@@ -120,8 +128,12 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         if (item.itemId == R.id.action_settings_logout) {
-            AuthenticationResponses.getInstance(this@MainActivity, this@MainActivity)
-                .logoutRequest("http://gorillagroove.net/api/authentication/logout")
+            launch {
+                withContext(Dispatchers.IO) {
+                    AuthenticationRequests.getInstance(this@MainActivity, this@MainActivity)
+                        .logoutRequest("http://gorillagroove.net/api/authentication/logout")
+                }
+            }
         }
 
         return when (item.itemId) {
@@ -135,10 +147,16 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
         when (item.itemId) {
             R.id.nav_login -> {
                 val intent = Intent(applicationContext, MainActivity::class.java)
+                intent.putExtra("token", token)
+                intent.putExtra("username", userName)
+                intent.putExtra("email", email)
                 startActivity(intent)
             }
             R.id.nav_playlists -> {
                 val intent = Intent(applicationContext, PlaylistActivity::class.java)
+                intent.putExtra("token", token)
+                intent.putExtra("username", userName)
+                intent.putExtra("email", email)
                 startActivity(intent)
             }
         }

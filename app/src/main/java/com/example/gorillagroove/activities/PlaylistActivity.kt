@@ -3,6 +3,7 @@ package com.example.gorillagroove.activities
 // TODO: Make this a fragment
 
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.support.design.widget.NavigationView
 import android.support.v4.view.GravityCompat
@@ -37,6 +38,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     private var token: String = ""
     private var userName: String = ""
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
+    private lateinit var mMediaPlayer: MediaPlayer
     private val om = ObjectMapper()
 
     private lateinit var recyclerView: RecyclerView
@@ -48,6 +50,8 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
         activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         recyclerView.adapter = PlaylistAdapter(activePlaylist)
+
+        mMediaPlayer = MediaPlayer.create(this, R.raw.analog)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -73,7 +77,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
             withContext(Dispatchers.IO) {
                 PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
                     .getPlaylistRequest(
-                        "http://gorillagroove.net/api/playlist/track?playlistId=49",
+                        "http://gorillagroove.net/api/playlist/track?playlistId=26&size=200",
                         token
                     )
             }
@@ -114,10 +118,16 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         when (item.itemId) {
             R.id.nav_login -> {
                 val intent = Intent(applicationContext, MainActivity::class.java)
+                intent.putExtra("token", token)
+                intent.putExtra("username", userName)
+                mMediaPlayer.release()
                 startActivity(intent)
             }
+
             R.id.nav_playlists -> {
                 val intent = Intent(applicationContext, PlaylistActivity::class.java)
+                intent.putExtra("token", token)
+                intent.putExtra("username", userName)
                 startActivity(intent)
             }
         }

@@ -20,11 +20,11 @@ interface PlaylistVolley {
     fun onPlaylistRequestResponse(response: JSONObject)
 }
 
-class PlaylistRequests {
+class PlaylistRequests private constructor(context: Context, playlistVolley: PlaylistVolley) {
 
     private var mRequestQueue: RequestQueue? = null
-    private var context: Context? = null
-    private var playlistVolley: PlaylistVolley? = null
+    private var context: Context? = context
+    private var playlistVolley: PlaylistVolley? = playlistVolley
     var imageLoader: ImageLoader? = null
 
     private val requestQueue: RequestQueue
@@ -34,9 +34,7 @@ class PlaylistRequests {
             return mRequestQueue!!
         }
 
-    private constructor(context: Context, playlistVolley: PlaylistVolley) {
-        this.context = context
-        this.playlistVolley = playlistVolley
+    init {
         mRequestQueue = requestQueue
         this.imageLoader = ImageLoader(mRequestQueue, object : ImageLoader.ImageCache {
             private val mCache = LruCache<String, Bitmap>(10)
@@ -49,31 +47,13 @@ class PlaylistRequests {
             }
 
         })
-
     }
 
-    private constructor(context: Context) {
-        this.context = context
-        mRequestQueue = requestQueue
-        this.imageLoader = ImageLoader(mRequestQueue, object : ImageLoader.ImageCache {
-            private val mCache = LruCache<String, Bitmap>(10)
-            override fun getBitmap(url: String?): Bitmap {
-                return mCache.get(url)
-            }
-
-            override fun putBitmap(url: String?, bitmap: Bitmap?) {
-                mCache.put(url, bitmap)
-            }
-
-        })
-
-    }
-
-    fun <T> addToRequestQueue(req: Request<T>) {
+    private fun <T> addToRequestQueue(req: Request<T>) {
         requestQueue.add(req)
     }
 
-    fun getPlaylistRequest(url: String, token: String){
+    fun getPlaylistRequest(url: String, token: String) {
         val postRequest = object :
             JsonObjectRequest(GET, url, null, Response.Listener { response ->
                 Log.d(TAG, response.toString())
@@ -96,14 +76,6 @@ class PlaylistRequests {
 
     companion object {
         private var mInstance: PlaylistRequests? = null
-
-        @Synchronized
-        fun getInstance(context: Context): PlaylistRequests {
-            if (mInstance == null) {
-                mInstance = PlaylistRequests(context)
-            }
-            return mInstance!!
-        }
 
         @Synchronized
         fun getInstance(context: Context, playlistVolley: PlaylistVolley): PlaylistRequests {

@@ -20,10 +20,13 @@ interface AuthenticationVolley {
     fun onLogoutResponse(response: JSONObject)
 }
 
-class AuthenticationRequests {
+class AuthenticationRequests private constructor(
+    context: Context,
+    authenticationVolley: AuthenticationVolley
+) {
     private var mRequestQueue: RequestQueue? = null
-    private var context: Context? = null
-    private var authenticationVolley: AuthenticationVolley? = null
+    private var context: Context? = context
+    private var authenticationVolley: AuthenticationVolley? = authenticationVolley
     var imageLoader: ImageLoader? = null
 
     private val requestQueue: RequestQueue
@@ -33,9 +36,7 @@ class AuthenticationRequests {
             return mRequestQueue!!
         }
 
-    private constructor(context: Context, authenticationVolley: AuthenticationVolley) {
-        this.context = context
-        this.authenticationVolley = authenticationVolley
+    init {
         mRequestQueue = requestQueue
         this.imageLoader = ImageLoader(mRequestQueue, object : ImageLoader.ImageCache {
             private val mCache = LruCache<String, Bitmap>(10)
@@ -48,10 +49,9 @@ class AuthenticationRequests {
             }
 
         })
-
     }
 
-    fun <T> addToRequestQueue(req: Request<T>) {
+    private fun <T> addToRequestQueue(req: Request<T>) {
         requestQueue.add(req)
     }
 

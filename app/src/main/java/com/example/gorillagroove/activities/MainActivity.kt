@@ -42,8 +42,6 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
     private lateinit var passwordField: EditText
     private lateinit var emailField: EditText
 
-    private lateinit var playlistAdapter: PlaylistAdapter
-
     override fun onLoginResponse(response: JSONObject) {
         token = response["token"].toString()
         userName = response["username"].toString()
@@ -77,6 +75,9 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
 
         emailField = findViewById(R.id.editText2)
         passwordField = findViewById(R.id.editText)
+
+        if(intent.hasExtra("token")) token = intent.getStringExtra("token")
+        if(intent.hasExtra("username")) token = intent.getStringExtra("username")
 
         val toggle = ActionBarDrawerToggle(
             this,

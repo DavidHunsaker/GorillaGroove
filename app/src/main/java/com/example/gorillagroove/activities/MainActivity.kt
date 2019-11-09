@@ -85,7 +85,10 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
         emailField.requestFocus()
 
         if (intent.hasExtra("token")) token = intent.getStringExtra("token")
-        if (intent.hasExtra("username")) token = intent.getStringExtra("username")
+        if (intent.hasExtra("username")) {
+            userName = intent.getStringExtra("username")
+            findViewById<TextView>(R.id.tv_nav_header).text = userName
+        }
 
         val toggle = ActionBarDrawerToggle(
             this,
@@ -168,7 +171,11 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
                     intent.putExtra("email", email)
                     startActivity(intent)
                 } else {
-                    Toast.makeText(this@MainActivity, "You must be logged in to go here!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@MainActivity,
+                        "You must be logged in to go here!",
+                        Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }

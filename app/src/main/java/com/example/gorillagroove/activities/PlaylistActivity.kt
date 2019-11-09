@@ -11,6 +11,7 @@ import android.support.v7.app.ActionBarDrawerToggle
 import android.support.v7.app.AppCompatActivity
 import android.support.v7.widget.LinearLayoutManager
 import android.support.v7.widget.RecyclerView
+import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import com.example.gorillagroove.R
@@ -38,8 +39,8 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     private var token: String = ""
     private var userName: String = ""
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
-    private lateinit var mMediaPlayer: MediaPlayer
     private val om = ObjectMapper()
+    private lateinit var mMediaPlayer: MediaPlayer
 
     private lateinit var recyclerView: RecyclerView
 
@@ -50,8 +51,6 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
         activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         recyclerView.adapter = PlaylistAdapter(activePlaylist)
-
-        mMediaPlayer = MediaPlayer.create(this, R.raw.analog)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,6 +74,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
         launch {
             withContext(Dispatchers.IO) {
+                Log.d("PlaylistActivity", "User=$userName is making a playlist request")
                 PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
                     .getPlaylistRequest(
                         "http://gorillagroove.net/api/playlist/track?playlistId=26&size=200",
@@ -85,6 +85,9 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
         recyclerView = findViewById(R.id.rv_playlist)
         recyclerView.layoutManager = LinearLayoutManager(this)
+
+        mMediaPlayer = MediaPlayer.create(this, R.raw.analog)
+        mMediaPlayer.start()
 
         nav_view.setNavigationItemSelectedListener(this)
     }

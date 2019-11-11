@@ -19,6 +19,7 @@ class PlaylistAdapter(private val values: List<PlaylistSongDTO>) : RecyclerView.
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.songTitle.text = values[position].track.name
         holder.artist.text = values[position].track.artist
+        holder.itemView.tag = position
     }
 
     class ViewHolder(itemView: View?): RecyclerView.ViewHolder(itemView!!) {

@@ -7,3 +7,8 @@ data class SongResponse(
     val trackLink: String?,
     val imageUrl: String?
 )
+
+data class TrackResponse(
+    val trackLink: String,
+    val imageUrl: String?
+)

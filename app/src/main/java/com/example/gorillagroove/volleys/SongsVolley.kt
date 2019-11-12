@@ -13,13 +13,10 @@ import com.android.volley.VolleyLog
 import com.android.volley.toolbox.ImageLoader
 import com.android.volley.toolbox.JsonObjectRequest
 import com.android.volley.toolbox.Volley
-import com.example.gorillagroove.dto.PlaylistSongDTO
 import org.json.JSONObject
 
 interface SongsVolley {
-    fun onGetSongResponse(response: JSONObject){
-
-    }
+    fun onGetSongResponse(response: JSONObject)
 }
 
 class SongsRequest private constructor(context: Context, songsVolley: SongsVolley) {

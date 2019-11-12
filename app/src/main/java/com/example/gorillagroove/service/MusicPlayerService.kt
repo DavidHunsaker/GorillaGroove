@@ -3,27 +3,38 @@ package com.example.gorillagroove.service
 import android.app.Notification
 import android.app.PendingIntent
 import android.app.Service
-import android.content.ContentUris
 import android.content.Intent
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Binder
 import android.os.IBinder
 import android.os.PowerManager
-import android.provider.MediaStore
 import android.util.Log
 import com.example.gorillagroove.R
 import com.example.gorillagroove.activities.MainActivity
+import com.example.gorillagroove.db.GroovinDB
+import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
+import com.example.gorillagroove.dto.TrackResponse
+import com.example.gorillagroove.volleys.SongsRequest
+import com.example.gorillagroove.volleys.SongsVolley
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONObject
 import java.util.Random
 
 
-class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
-    MediaPlayer.OnCompletionListener {
+class MusicPlayerService() : Service(), MediaPlayer.OnPreparedListener,
+    MediaPlayer.OnErrorListener,
+    MediaPlayer.OnCompletionListener, CoroutineScope by MainScope(), SongsVolley {
 
     private lateinit var player: MediaPlayer
     private lateinit var songs: List<PlaylistSongDTO>
     private lateinit var random: Random
+    private lateinit var userRepository: UserRepository
 
     private val NOTIFY_ID = 1
     private val musicBind: IBinder = MusicBinder()
@@ -31,12 +42,30 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
     private var songPosition = 1
     private var shuffle = false
     private var songTitle = ""
+    private var token = ""
+    private var currentTrackResponse: TrackResponse? = null
 
     override fun onCreate() {
         super.onCreate()
         songPosition = 0
         player = MediaPlayer()
         initMusicPlayer()
+        userRepository =
+            UserRepository(GroovinDB.getDatabase(this@MusicPlayerService).userRepository())
+        launch {
+            withContext(Dispatchers.IO) {
+                userToken()
+            }
+        }
+    }
+
+    private suspend fun userToken() {
+        Log.i("Yeah Boi!!", "We're fucking grabbing a beautiful token!")
+        try {
+            token = userRepository.findUser("david.e.hunsaker@gmail.com")!!.token!!
+        } catch (e: Exception) {
+            Log.e("MusicPlayerService", "oh fuck: $e")
+        }
     }
 
     private fun initMusicPlayer() {
@@ -79,6 +108,14 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
         player.seekTo(position)
     }
 
+    fun getBufferPercentage(): Int {
+        return (player.currentPosition * 100) / player.duration
+    }
+
+    fun getAudioSessionId(): Int {
+        return player.audioSessionId
+    }
+
     fun playPrevious() {
         songPosition -= 1
         if (songPosition < 0) songPosition = songs.size - 1
@@ -86,9 +123,9 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
     }
 
     fun playNext() {
-        if(shuffle) {
-         var newSong = songPosition
-            while(newSong == songPosition) {
+        if (shuffle) {
+            var newSong = songPosition
+            while (newSong == songPosition) {
                 newSong = random.nextInt(songs.size)
             }
             songPosition = newSong
@@ -96,6 +133,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
             songPosition += 1
             if (songPosition > songs.size) songPosition = 0
         }
+        Log.i("MusicPlayerService", "Current songPosition is now=$songPosition")
         playSong()
     }
 
@@ -136,7 +174,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
-        if(player.currentPosition > 0){
+        if (player.currentPosition > 0) {
             mp!!.reset()
             // FIXME Song play count update here?
             playNext()
@@ -158,6 +196,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
     }
 
     fun setShuffle() {
+        Log.i("Shuffle Alert!", "Shuffle is now set to $shuffle")
         shuffle = !shuffle
     }
 
@@ -165,22 +204,36 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
         player.reset()
         val playSong = songs[songPosition]
         songTitle = playSong.track.name.toString()
-        val currentSong = playSong.id
 
         // FIXME This is likely where I need to make a request to grab the song
+        launch {
+            getSongStreamInfo(playSong.track.id)
 
-        val trackUri = ContentUris.withAppendedId(
-            android.provider.MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-            currentSong
-        )
 
-        try {
-            player.setDataSource(applicationContext, trackUri)
-        } catch (e: Exception) {
-            Log.e("MusicPlayerService", "Error setting data source: $e")
+            try {
+                player.setDataSource(currentTrackResponse!!.trackLink)
+                player.prepareAsync()
+            } catch (e: Exception) {
+                Log.e("MusicPlayerService", "Error setting data source: $e")
+            }
         }
 
-        player.prepareAsync()
+    }
+
+    private suspend fun getSongStreamInfo(trackId: Long) {
+        withContext(Dispatchers.IO) {
+            Log.d("MusicPlayerService", "Geting song info for track=$trackId with token=$token")
+            SongsRequest.getInstance(this@MusicPlayerService, this@MusicPlayerService)
+                .getSongRequest(
+                    "http://gorillagroove.net/api/file/link/$trackId",
+                    token
+                )
+        }
+    }
+
+    override fun onGetSongResponse(response: JSONObject) {
+        currentTrackResponse =
+            TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
     }
 
 }

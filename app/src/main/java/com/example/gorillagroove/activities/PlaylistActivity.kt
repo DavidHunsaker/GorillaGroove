@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.IBinder
 import android.support.design.widget.NavigationView
@@ -18,7 +17,6 @@ import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
-import android.view.View
 import android.widget.MediaController.MediaPlayerControl
 import com.example.gorillagroove.R
 import com.example.gorillagroove.adapters.PlaylistAdapter
@@ -58,7 +56,6 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     private var musicPlayerService: MusicPlayerService? = null
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
 
-    private lateinit var mMediaPlayer: MediaPlayer
     private lateinit var recyclerView: RecyclerView
     private lateinit var repository: UserRepository
     private lateinit var controller: MusicController
@@ -105,8 +102,6 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         recyclerView.layoutManager = LinearLayoutManager(this)
 
         setController()
-//        mMediaPlayer = MediaPlayer.create(this, R.raw.analog)
-//        mMediaPlayer.start()
 
         nav_view.setNavigationItemSelectedListener(this)
     }
@@ -135,16 +130,6 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
             bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE)
             startService(playIntent)
         }
-    }
-
-    fun songSelected(view: View) {
-        musicPlayerService!!.setSong(Integer.parseInt(view.tag.toString()))
-        musicPlayerService!!.playSong()
-        if(playbackPaused){
-            setController()
-            playbackPaused = false
-        }
-        controller.show(0)
     }
 
     override fun onBackPressed() {
@@ -188,7 +173,6 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
                 val intent = Intent(applicationContext, MainActivity::class.java)
                 intent.putExtra("token", token)
                 intent.putExtra("username", userName)
-                mMediaPlayer.release()
                 startActivity(intent)
             }
 
@@ -205,20 +189,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
     private fun setController() {
         controller = MusicController(this@PlaylistActivity)
-
-        controller.setPrevNextListeners(
-            {
-                fun onClick(view: View) {
-                    playNext()
-                }
-            },
-            {
-                fun onClick(view: View) {
-                    playPrevious()
-                }
-            }
-        )
-
+        controller.setPrevNextListeners({ playNext() }, { playPrevious() })
         controller.setMediaPlayer(this)
         controller.setAnchorView(findViewById(R.id.rv_playlist))
         controller.isEnabled = true
@@ -226,7 +197,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
     private fun playNext() {
         musicPlayerService!!.playNext()
-        if(playbackPaused){
+        if (playbackPaused) {
             setController()
             playbackPaused = false
         }
@@ -235,7 +206,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
     private fun playPrevious() {
         musicPlayerService!!.playPrevious()
-        if(playbackPaused){
+        if (playbackPaused) {
             setController()
             playbackPaused = false
         }
@@ -289,7 +260,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
     override fun onResume() {
         super.onResume()
-        if(paused) {
+        if (paused) {
             setController()
             paused = false
         }
@@ -301,10 +272,10 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     }
 
     override fun getBufferPercentage(): Int {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return musicPlayerService!!.getBufferPercentage()
     }
 
     override fun getAudioSessionId(): Int {
-        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+        return musicPlayerService!!.getAudioSessionId()
     }
 }

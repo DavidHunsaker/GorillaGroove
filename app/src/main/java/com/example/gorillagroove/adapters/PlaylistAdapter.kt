@@ -8,9 +8,13 @@ import android.widget.TextView
 import com.example.gorillagroove.R
 import com.example.gorillagroove.dto.PlaylistSongDTO
 
-class PlaylistAdapter(private val values: List<PlaylistSongDTO>) : RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
+
+class PlaylistAdapter(private val values: List<PlaylistSongDTO>) :
+    RecyclerView.Adapter<PlaylistAdapter.ViewHolder>() {
+
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.playlist_song_item, parent, false)
+        val itemView =
+            LayoutInflater.from(parent.context).inflate(R.layout.playlist_song_item, parent, false)
         return ViewHolder(itemView)
     }
 
@@ -22,7 +26,7 @@ class PlaylistAdapter(private val values: List<PlaylistSongDTO>) : RecyclerView.
         holder.itemView.tag = position
     }
 
-    class ViewHolder(itemView: View?): RecyclerView.ViewHolder(itemView!!) {
+    class ViewHolder(itemView: View?) : RecyclerView.ViewHolder(itemView!!) {
         val songTitle: TextView = itemView!!.findViewById(R.id.tv_song_title)
         val artist: TextView = itemView!!.findViewById(R.id.tv_artist_name)
     }

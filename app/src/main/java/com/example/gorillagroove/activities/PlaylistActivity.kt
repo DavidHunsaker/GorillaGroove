@@ -17,6 +17,7 @@ import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
 import android.widget.MediaController.MediaPlayerControl
 import com.example.gorillagroove.R
 import com.example.gorillagroove.adapters.PlaylistAdapter
@@ -92,7 +93,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
                 Log.d("PlaylistActivity", "User=$userName is making a playlist request")
                 PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
                     .getPlaylistRequest(
-                        "http://gorillagroove.net/api/playlist/track?playlistId=26&size=200",
+                        "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200",
                         token
                     )
             }
@@ -130,6 +131,17 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
             bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE)
             startService(playIntent)
         }
+    }
+
+    fun songSelected(view: View) {
+//        musicPlayerService!!.setSong(Integer.parseInt(view.tag.toString()))
+        musicPlayerService!!.setSong(0)
+        musicPlayerService!!.playSong()
+        if(playbackPaused){
+            setController()
+            playbackPaused = false
+        }
+        controller.show(0)
     }
 
     override fun onBackPressed() {

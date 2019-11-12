@@ -27,7 +27,7 @@ import org.json.JSONObject
 import java.util.Random
 
 
-class MusicPlayerService() : Service(), MediaPlayer.OnPreparedListener,
+class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     MediaPlayer.OnErrorListener,
     MediaPlayer.OnCompletionListener, CoroutineScope by MainScope(), SongsVolley {
 
@@ -60,11 +60,10 @@ class MusicPlayerService() : Service(), MediaPlayer.OnPreparedListener,
     }
 
     private suspend fun userToken() {
-        Log.i("Yeah Boi!!", "We're fucking grabbing a beautiful token!")
         try {
-            token = userRepository.findUser("david.e.hunsaker@gmail.com")!!.token!!
+            token = userRepository.findUser("test@gorilla.groove")!!.token!!
         } catch (e: Exception) {
-            Log.e("MusicPlayerService", "oh fuck: $e")
+            Log.e("MusicPlayerService", "something bad happened: $e")
         }
     }
 

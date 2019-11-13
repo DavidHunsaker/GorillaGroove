@@ -2,9 +2,12 @@ package com.example.gorillagroove.activities
 
 // TODO: Make this a fragment
 
+import android.content.ComponentName
+import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
+import android.content.ServiceConnection
 import android.os.Bundle
+import android.os.IBinder
 import android.support.design.widget.NavigationView
 import android.support.v4.view.GravityCompat
 import android.support.v7.app.ActionBarDrawerToggle
@@ -14,11 +17,16 @@ import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
+import android.view.View
+import android.widget.MediaController.MediaPlayerControl
 import com.example.gorillagroove.R
 import com.example.gorillagroove.adapters.PlaylistAdapter
+import com.example.gorillagroove.controller.MusicController
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
+import com.example.gorillagroove.service.MusicPlayerService
+import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
 import com.example.gorillagroove.volleys.PlaylistRequests
 import com.example.gorillagroove.volleys.PlaylistVolley
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -31,25 +39,33 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import kotlin.system.exitProcess
 
 
 class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
-    NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope() {
+    NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope(),
+    MediaPlayerControl {
 
+    private val om = ObjectMapper()
+
+    private var paused = false
+    private var musicBound = false
     private var token: String = ""
     private var userName: String = ""
+    private var playbackPaused = false
+    private var playIntent: Intent? = null
+    private var musicPlayerService: MusicPlayerService? = null
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
-    private val om = ObjectMapper()
-    private lateinit var mMediaPlayer: MediaPlayer
 
     private lateinit var recyclerView: RecyclerView
-
     private lateinit var repository: UserRepository
+    private lateinit var controller: MusicController
 
     override fun onPlaylistRequestResponse(response: JSONObject) {
         val content: String = response.get("content").toString()
 
         activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
+        musicPlayerService!!.setSongList(activePlaylist)
         recyclerView.adapter = PlaylistAdapter(activePlaylist)
     }
 
@@ -77,7 +93,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
                 Log.d("PlaylistActivity", "User=$userName is making a playlist request")
                 PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
                     .getPlaylistRequest(
-                        "http://gorillagroove.net/api/playlist/track?playlistId=26&size=200",
+                        "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200",
                         token
                     )
             }
@@ -86,10 +102,46 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         recyclerView = findViewById(R.id.rv_playlist)
         recyclerView.layoutManager = LinearLayoutManager(this)
 
-        mMediaPlayer = MediaPlayer.create(this, R.raw.analog)
-        mMediaPlayer.start()
+        setController()
 
         nav_view.setNavigationItemSelectedListener(this)
+    }
+
+    //connect to the service
+    private val musicConnection = object : ServiceConnection {
+
+        override fun onServiceConnected(name: ComponentName, service: IBinder) {
+            val binder = service as MusicBinder
+            //get service
+            musicPlayerService = binder.getService()
+            //pass list
+            musicPlayerService!!.setSongList(activePlaylist)
+            musicBound = true
+        }
+
+        override fun onServiceDisconnected(name: ComponentName) {
+            musicBound = false
+        }
+    }
+
+    override fun onStart() {
+        super.onStart()
+        if (playIntent == null) {
+            playIntent = Intent(this@PlaylistActivity, MusicPlayerService::class.java)
+            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE)
+            startService(playIntent)
+        }
+    }
+
+    fun songSelected(view: View) {
+//        musicPlayerService!!.setSong(Integer.parseInt(view.tag.toString()))
+        musicPlayerService!!.setSong(0)
+        musicPlayerService!!.playSong()
+        if(playbackPaused){
+            setController()
+            playbackPaused = false
+        }
+        controller.show(0)
     }
 
     override fun onBackPressed() {
@@ -107,13 +159,23 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        return when (item.itemId) {
-            R.id.action_settings_logout -> true
-            else -> super.onOptionsItemSelected(item)
+        when (item.itemId) {
+            R.id.action_shuffle -> {
+                musicPlayerService!!.setShuffle()
+            }
+            R.id.action_end -> {
+                stopService(playIntent)
+                musicPlayerService = null
+                exitProcess(0)
+            }
         }
+        return super.onOptionsItemSelected(item)
+    }
+
+    override fun onDestroy() {
+        stopService(playIntent)
+        musicPlayerService = null
+        super.onDestroy()
     }
 
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
@@ -123,7 +185,6 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
                 val intent = Intent(applicationContext, MainActivity::class.java)
                 intent.putExtra("token", token)
                 intent.putExtra("username", userName)
-                mMediaPlayer.release()
                 startActivity(intent)
             }
 
@@ -136,5 +197,97 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         }
         drawer_layout.closeDrawer(GravityCompat.START)
         return true
+    }
+
+    private fun setController() {
+        controller = MusicController(this@PlaylistActivity)
+        controller.setPrevNextListeners({ playNext() }, { playPrevious() })
+        controller.setMediaPlayer(this)
+        controller.setAnchorView(findViewById(R.id.rv_playlist))
+        controller.isEnabled = true
+    }
+
+    private fun playNext() {
+        musicPlayerService!!.playNext()
+        if (playbackPaused) {
+            setController()
+            playbackPaused = false
+        }
+        controller.show(0)
+    }
+
+    private fun playPrevious() {
+        musicPlayerService!!.playPrevious()
+        if (playbackPaused) {
+            setController()
+            playbackPaused = false
+        }
+        controller.show(0)
+    }
+
+    override fun isPlaying(): Boolean {
+        return if (musicPlayerService != null && musicBound) musicPlayerService!!.isPlaying()
+        else false
+    }
+
+    override fun canSeekForward(): Boolean {
+        return true
+    }
+
+    override fun getDuration(): Int {
+        return if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) musicPlayerService!!.getDuration()
+        else 0
+    }
+
+    override fun pause() {
+        playbackPaused = true
+        musicPlayerService!!.pausePlayer()
+    }
+
+    override fun seekTo(pos: Int) {
+        musicPlayerService!!.seek(pos)
+    }
+
+    override fun getCurrentPosition(): Int {
+        return if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) musicPlayerService!!.getPosition()
+        else 0
+    }
+
+    override fun canSeekBackward(): Boolean {
+        return true
+    }
+
+    override fun start() {
+        musicPlayerService!!.start()
+    }
+
+    override fun canPause(): Boolean {
+        return true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        paused = true
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (paused) {
+            setController()
+            paused = false
+        }
+    }
+
+    override fun onStop() {
+        controller.hide()
+        super.onStop()
+    }
+
+    override fun getBufferPercentage(): Int {
+        return musicPlayerService!!.getBufferPercentage()
+    }
+
+    override fun getAudioSessionId(): Int {
+        return musicPlayerService!!.getAudioSessionId()
     }
 }

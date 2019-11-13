@@ -59,7 +59,12 @@ class SongsRequest private constructor(context: Context, songsVolley: SongsVolle
                     Log.d(ContentValues.TAG, response.toString())
                     songsVolley!!.onGetSongResponse(response)
                 },
-                Response.ErrorListener { error -> VolleyLog.d(ContentValues.TAG, "Error: ${error.message}") }
+                Response.ErrorListener { error ->
+                    VolleyLog.d(
+                        ContentValues.TAG,
+                        "Error: ${error.message}"
+                    )
+                }
             ) {
 
             @Throws(AuthFailureError::class)

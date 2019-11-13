@@ -20,6 +20,7 @@ import android.view.MenuItem
 import android.view.View
 import android.widget.MediaController.MediaPlayerControl
 import com.example.gorillagroove.R
+import com.example.gorillagroove.adapters.OnItemClickListener
 import com.example.gorillagroove.adapters.PlaylistAdapter
 import com.example.gorillagroove.controller.MusicController
 import com.example.gorillagroove.db.GroovinDB
@@ -44,7 +45,7 @@ import kotlin.system.exitProcess
 
 class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope(),
-    MediaPlayerControl {
+    MediaPlayerControl, OnItemClickListener {
 
     private val om = ObjectMapper()
 
@@ -66,7 +67,9 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
 
         activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         musicPlayerService!!.setSongList(activePlaylist)
-        recyclerView.adapter = PlaylistAdapter(activePlaylist)
+        val playlistAdapter = PlaylistAdapter(activePlaylist)
+        recyclerView.adapter = playlistAdapter
+        playlistAdapter.setClickListener(this)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -133,15 +136,14 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         }
     }
 
-    fun songSelected(view: View) {
-//        musicPlayerService!!.setSong(Integer.parseInt(view.tag.toString()))
-        musicPlayerService!!.setSong(0)
-        musicPlayerService!!.playSong()
+    override fun onClick(view: View, position: Int) {
+        musicPlayerService!!.setSong(position)
         if(playbackPaused){
             setController()
             playbackPaused = false
         }
-        controller.show(0)
+        musicPlayerService!!.playSong()
+        controller.show(0) // Passing 0 so controller always shows
     }
 
     override fun onBackPressed() {

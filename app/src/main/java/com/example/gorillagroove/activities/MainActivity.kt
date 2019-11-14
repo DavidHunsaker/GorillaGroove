@@ -2,22 +2,23 @@ package com.example.gorillagroove.activities
 
 import android.content.Intent
 import android.os.Bundle
-import com.google.android.material.navigation.NavigationView
-import androidx.core.view.GravityCompat
-import androidx.appcompat.app.ActionBarDrawerToggle
-import androidx.appcompat.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
 import com.example.gorillagroove.R
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.model.User
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.volleys.AuthenticationRequests
 import com.example.gorillagroove.volleys.AuthenticationVolley
+import com.example.gorillagroove.volleys.loginRequest
+import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
@@ -25,8 +26,11 @@ import kotlinx.android.synthetic.main.content_main.btn_login
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import okhttp3.internal.wait
 import org.json.JSONObject
 
 
@@ -103,22 +107,29 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
 
         btn_login.setOnClickListener {
 
-            val credentials =
-                credentialsToMap(emailField.text.toString(), passwordField.text.toString())
+            val email = emailField.text.toString()
+            val password = passwordField.text.toString()
+            val loginUrl = "http://gorillagroove.net/api/authentication/login"
 
-            AuthenticationRequests.getInstance(this@MainActivity, this@MainActivity)
-                .loginRequest("http://gorillagroove.net/api/authentication/login", credentials)
+            val response = async { loginRequest(loginUrl, email, password) }
+
+            launch {
+                withContext(Dispatchers.IO) {
+                    response.await()
+                    user = repository.findUser(email)
+
+                    if (user != null) {
+                        repository.updateToken(user!!.id, token)
+                    } else repository.createUser(userName, email, token)
+                }
+            }
+
+            emailField.text.clear()
+            passwordField.text.clear()
+            emailField.requestFocus()
         }
 
         nav_view.setNavigationItemSelectedListener(this)
-    }
-
-    private fun credentialsToMap(email: String, password: String): HashMap<String, String> {
-        val credentials = HashMap<String, String>()
-        credentials["email"] = email
-        credentials["password"] = password
-
-        return credentials
     }
 
     override fun onBackPressed() {

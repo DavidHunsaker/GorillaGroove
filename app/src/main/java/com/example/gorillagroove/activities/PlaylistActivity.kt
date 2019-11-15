@@ -58,7 +58,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     private var musicPlayerService: MusicPlayerService? = null
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
 
-    private lateinit var recyclerView: androidx.recyclerview.widget.RecyclerView
+    private lateinit var recyclerView: RecyclerView
     private lateinit var repository: UserRepository
     private lateinit var controller: MusicController
 
@@ -103,7 +103,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         }
 
         recyclerView = findViewById(R.id.rv_playlist)
-        recyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
+        recyclerView.layoutManager = LinearLayoutManager(this)
 
         setController()
 

@@ -26,11 +26,9 @@ import kotlinx.android.synthetic.main.content_main.btn_login
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import okhttp3.internal.wait
 import org.json.JSONObject
 
 
@@ -107,20 +105,26 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
 
         btn_login.setOnClickListener {
 
-            val email = emailField.text.toString()
-            val password = passwordField.text.toString()
+            val emailFieldText = emailField.text.toString()
+            val passwordFieldText = passwordField.text.toString()
             val loginUrl = "http://gorillagroove.net/api/authentication/login"
 
-            val response = async { loginRequest(loginUrl, email, password) }
+            val response = runBlocking { loginRequest(loginUrl, emailFieldText, passwordFieldText) }
+
+            token = response["token"].toString()
+            userName = response["username"].toString()
+            email = response["email"].toString()
+
+            findViewById<TextView>(R.id.tv_nav_header).text = userName
 
             launch {
                 withContext(Dispatchers.IO) {
-                    response.await()
-                    user = repository.findUser(email)
+                    user = repository.findUser(emailFieldText)
 
                     if (user != null) {
                         repository.updateToken(user!!.id, token)
-                    } else repository.createUser(userName, email, token)
+                        Log.i("ffs", "the token is:$token")
+                    } else repository.createUser(userName, emailFieldText, token)
                 }
             }
 

@@ -8,44 +8,40 @@ import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
-import android.support.design.widget.NavigationView
-import android.support.v4.view.GravityCompat
-import android.support.v7.app.ActionBarDrawerToggle
-import android.support.v7.app.AppCompatActivity
-import android.support.v7.widget.LinearLayoutManager
-import android.support.v7.widget.RecyclerView
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.MediaController.MediaPlayerControl
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.example.gorillagroove.R
 import com.example.gorillagroove.adapters.OnItemClickListener
 import com.example.gorillagroove.adapters.PlaylistAdapter
+import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.controller.MusicController
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.service.MusicPlayerService
 import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
-import com.example.gorillagroove.volleys.PlaylistRequests
-import com.example.gorillagroove.volleys.PlaylistVolley
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import kotlin.system.exitProcess
 
 
-class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
-    NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope(),
-    MediaPlayerControl, OnItemClickListener {
+class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
+    CoroutineScope by MainScope(), MediaPlayerControl, OnItemClickListener {
 
     private val om = ObjectMapper()
 
@@ -61,16 +57,6 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     private lateinit var recyclerView: RecyclerView
     private lateinit var repository: UserRepository
     private lateinit var controller: MusicController
-
-    override fun onPlaylistRequestResponse(response: JSONObject) {
-        val content: String = response.get("content").toString()
-
-        activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
-        musicPlayerService!!.setSongList(activePlaylist)
-        val playlistAdapter = PlaylistAdapter(activePlaylist)
-        recyclerView.adapter = playlistAdapter
-        playlistAdapter.setClickListener(this)
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -91,19 +77,19 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
-        launch {
-            withContext(Dispatchers.IO) {
-                Log.d("PlaylistActivity", "User=$userName is making a playlist request")
-                PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
-                    .getPlaylistRequest(
-                        "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200",
-                        token
-                    )
-            }
-        }
+        val playlistUrl = "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
 
+        val response = runBlocking { authenticatedGetRequest(playlistUrl, token) }
+
+        val content: String = response.get("content").toString()
+
+        activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         recyclerView = findViewById(R.id.rv_playlist)
         recyclerView.layoutManager = LinearLayoutManager(this)
+
+        val playlistAdapter = PlaylistAdapter(activePlaylist)
+        recyclerView.adapter = playlistAdapter
+        playlistAdapter.setClickListener(this)
 
         setController()
 
@@ -128,6 +114,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     }
 
     override fun onStart() {
+        Log.i("PlaylistActivity", "onStart Called!")
         super.onStart()
         if (playIntent == null) {
             playIntent = Intent(this@PlaylistActivity, MusicPlayerService::class.java)
@@ -137,8 +124,9 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     }
 
     override fun onClick(view: View, position: Int) {
+        Log.i("PlaylistActivity", "onClick called!")
         musicPlayerService!!.setSong(position)
-        if(playbackPaused){
+        if (playbackPaused) {
             setController()
             playbackPaused = false
         }
@@ -237,6 +225,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     }
 
     override fun getDuration(): Int {
+        Log.i("PlaylistActivity", "Call to getDuration!")
         return if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) musicPlayerService!!.getDuration()
         else 0
     }

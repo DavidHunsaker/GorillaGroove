@@ -2,22 +2,21 @@ package com.example.gorillagroove.activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.support.design.widget.NavigationView
-import android.support.v4.view.GravityCompat
-import android.support.v7.app.ActionBarDrawerToggle
-import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
+import androidx.appcompat.app.ActionBarDrawerToggle
+import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.GravityCompat
 import com.example.gorillagroove.R
+import com.example.gorillagroove.client.loginRequest
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.model.User
 import com.example.gorillagroove.db.repository.UserRepository
-import com.example.gorillagroove.volleys.AuthenticationRequests
-import com.example.gorillagroove.volleys.AuthenticationVolley
+import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
@@ -26,11 +25,11 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 
-class MainActivity : AppCompatActivity(), AuthenticationVolley,
+class MainActivity : AppCompatActivity(),
     NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope() {
     var user: User? = null
     var token: String = ""
@@ -41,36 +40,6 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
 
     private lateinit var passwordField: EditText
     private lateinit var emailField: EditText
-
-    override fun onLoginResponse(response: JSONObject) {
-        token = response["token"].toString()
-        userName = response["username"].toString()
-        email = response["email"].toString()
-
-        findViewById<TextView>(R.id.tv_nav_header).text = userName
-
-        launch {
-            withContext(Dispatchers.IO) {
-                user = repository.findUser(email)
-
-                if (user != null) {
-                    repository.updateToken(user!!.id, token)
-                } else repository.createUser(userName, email, token)
-            }
-        }
-        Log.i(
-            "Main Activity",
-            "What's up dude, we just snagged ourselves some token: $token and userName: $userName"
-        )
-
-        emailField.text.clear()
-        passwordField.text.clear()
-        emailField.requestFocus()
-    }
-
-    override fun onLogoutResponse(response: JSONObject) {
-        Toast.makeText(this@MainActivity, "Successfully Logged out", Toast.LENGTH_LONG).show()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,22 +72,35 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
 
         btn_login.setOnClickListener {
 
-            val credentials =
-                credentialsToMap(emailField.text.toString(), passwordField.text.toString())
+            val emailFieldText = emailField.text.toString()
+            val passwordFieldText = passwordField.text.toString()
+            val loginUrl = "http://gorillagroove.net/api/authentication/login"
 
-            AuthenticationRequests.getInstance(this@MainActivity, this@MainActivity)
-                .loginRequest("http://gorillagroove.net/api/authentication/login", credentials)
+            val response = runBlocking { loginRequest(loginUrl, emailFieldText, passwordFieldText) }
+
+            token = response["token"].toString()
+            userName = response["username"].toString()
+            email = response["email"].toString()
+
+            findViewById<TextView>(R.id.tv_nav_header).text = userName
+
+            launch {
+                withContext(Dispatchers.IO) {
+                    user = repository.findUser(emailFieldText)
+
+                    if (user != null) {
+                        repository.updateToken(user!!.id, token)
+                        Log.i("ffs", "the token is:$token")
+                    } else repository.createUser(userName, emailFieldText, token)
+                }
+            }
+
+            emailField.text.clear()
+            passwordField.text.clear()
+            emailField.requestFocus()
         }
 
         nav_view.setNavigationItemSelectedListener(this)
-    }
-
-    private fun credentialsToMap(email: String, password: String): HashMap<String, String> {
-        val credentials = HashMap<String, String>()
-        credentials["email"] = email
-        credentials["password"] = password
-
-        return credentials
     }
 
     override fun onBackPressed() {
@@ -140,12 +122,7 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         if (item.itemId == R.id.action_settings_logout) {
-            launch {
-                withContext(Dispatchers.IO) {
-                    AuthenticationRequests.getInstance(this@MainActivity, this@MainActivity)
-                        .logoutRequest("http://gorillagroove.net/api/authentication/logout")
-                }
-            }
+            Toast.makeText(this, "In the future this will actually log out", Toast.LENGTH_SHORT).show()
         }
         return when (item.itemId) {
             R.id.action_settings_logout -> true

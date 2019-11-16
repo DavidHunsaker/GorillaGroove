@@ -1,10 +1,10 @@
 package com.example.gorillagroove.adapters
 
-import android.support.v7.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.recyclerview.widget.RecyclerView
 import com.example.gorillagroove.R
 import com.example.gorillagroove.dto.PlaylistSongDTO
 
@@ -27,11 +27,12 @@ class PlaylistAdapter(private val values: List<PlaylistSongDTO>) :
         holder.itemView.tag = position
     }
 
-    fun setClickListener(itemClickListener: OnItemClickListener){
+    fun setClickListener(itemClickListener: OnItemClickListener) {
         this.clickListener = itemClickListener
     }
 
-    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView), View.OnClickListener {
+    inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
+        View.OnClickListener {
         // each data item is just a string in this case
         val songTitle: TextView = itemView.findViewById(R.id.tv_song_title)
         val artist: TextView = itemView.findViewById(R.id.tv_artist_name)
@@ -42,9 +43,9 @@ class PlaylistAdapter(private val values: List<PlaylistSongDTO>) :
 
         override fun onClick(view: View) {
             var currentPosition = adapterPosition
-            if(currentPosition <= 0){
+            if (currentPosition <= 0) {
                 currentPosition = 0
-            } else if(currentPosition >= itemCount) {
+            } else if (currentPosition >= itemCount) {
                 currentPosition = (itemCount - 1)
             }
             clickListener.onClick(view, currentPosition)

@@ -1,4 +1,4 @@
-package com.example.gorillagroove.volleys
+package com.example.gorillagroove.client
 
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
@@ -9,10 +9,6 @@ import java.io.IOException
 import kotlin.concurrent.thread
 
 private val client = OkHttpClient()
-
-fun authenticatedPostRequest(url: String, token: String, body: String) {
-
-}
 
 fun loginRequest(url: String, email: String, password: String): JSONObject {
     val body = """{ "email": "$email", "password": "$password" }""".trimIndent()

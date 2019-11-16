@@ -16,7 +16,7 @@ import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.TrackResponse
-import com.example.gorillagroove.volleys.authenticatedGetRequest
+import com.example.gorillagroove.client.authenticatedGetRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope

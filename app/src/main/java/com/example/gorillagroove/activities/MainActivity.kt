@@ -12,12 +12,10 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import com.example.gorillagroove.R
+import com.example.gorillagroove.client.loginRequest
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.model.User
 import com.example.gorillagroove.db.repository.UserRepository
-import com.example.gorillagroove.volleys.AuthenticationRequests
-import com.example.gorillagroove.volleys.AuthenticationVolley
-import com.example.gorillagroove.volleys.loginRequest
 import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
@@ -29,10 +27,9 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 
-class MainActivity : AppCompatActivity(), AuthenticationVolley,
+class MainActivity : AppCompatActivity(),
     NavigationView.OnNavigationItemSelectedListener, CoroutineScope by MainScope() {
     var user: User? = null
     var token: String = ""
@@ -43,36 +40,6 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
 
     private lateinit var passwordField: EditText
     private lateinit var emailField: EditText
-
-    override fun onLoginResponse(response: JSONObject) {
-        token = response["token"].toString()
-        userName = response["username"].toString()
-        email = response["email"].toString()
-
-        findViewById<TextView>(R.id.tv_nav_header).text = userName
-
-        launch {
-            withContext(Dispatchers.IO) {
-                user = repository.findUser(email)
-
-                if (user != null) {
-                    repository.updateToken(user!!.id, token)
-                } else repository.createUser(userName, email, token)
-            }
-        }
-        Log.i(
-            "Main Activity",
-            "What's up dude, we just snagged ourselves some token: $token and userName: $userName"
-        )
-
-        emailField.text.clear()
-        passwordField.text.clear()
-        emailField.requestFocus()
-    }
-
-    override fun onLogoutResponse(response: JSONObject) {
-        Toast.makeText(this@MainActivity, "Successfully Logged out", Toast.LENGTH_LONG).show()
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -155,12 +122,7 @@ class MainActivity : AppCompatActivity(), AuthenticationVolley,
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         if (item.itemId == R.id.action_settings_logout) {
-            launch {
-                withContext(Dispatchers.IO) {
-                    AuthenticationRequests.getInstance(this@MainActivity, this@MainActivity)
-                        .logoutRequest("http://gorillagroove.net/api/authentication/logout")
-                }
-            }
+            Toast.makeText(this, "In the future this will actually log out", Toast.LENGTH_SHORT).show()
         }
         return when (item.itemId) {
             R.id.action_settings_logout -> true

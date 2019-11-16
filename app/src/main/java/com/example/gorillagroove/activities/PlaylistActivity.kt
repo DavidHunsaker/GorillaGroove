@@ -30,6 +30,7 @@ import com.example.gorillagroove.service.MusicPlayerService
 import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
 import com.example.gorillagroove.volleys.PlaylistRequests
 import com.example.gorillagroove.volleys.PlaylistVolley
+import com.example.gorillagroove.volleys.authenticatedGetRequest
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
@@ -38,6 +39,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
 import kotlin.system.exitProcess
@@ -91,19 +93,31 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
-        launch {
-            withContext(Dispatchers.IO) {
-                Log.d("PlaylistActivity", "User=$userName is making a playlist request")
-                PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
-                    .getPlaylistRequest(
-                        "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200",
-                        token
-                    )
-            }
-        }
+        val playlistUrl = "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
 
+        val response = runBlocking { authenticatedGetRequest(playlistUrl, token) }
+
+        val content: String = response.get("content").toString()
+
+        activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         recyclerView = findViewById(R.id.rv_playlist)
         recyclerView.layoutManager = LinearLayoutManager(this)
+
+        val playlistAdapter = PlaylistAdapter(activePlaylist)
+        recyclerView.adapter = playlistAdapter
+        playlistAdapter.setClickListener(this)
+
+//        launch {
+//            withContext(Dispatchers.IO) {
+//                Log.d("PlaylistActivity", "User=$userName is making a playlist request")
+//                PlaylistRequests.getInstance(this@PlaylistActivity, this@PlaylistActivity)
+//                    .getPlaylistRequest(
+//                        "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200",
+//                        token
+//                    )
+//            }
+//        }
+
 
         setController()
 
@@ -128,15 +142,18 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     }
 
     override fun onStart() {
+        Log.i("PlaylistActivity", "onStart Called!")
         super.onStart()
         if (playIntent == null) {
             playIntent = Intent(this@PlaylistActivity, MusicPlayerService::class.java)
             bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE)
             startService(playIntent)
         }
+//        musicPlayerService!!.setSongList(activePlaylist)
     }
 
     override fun onClick(view: View, position: Int) {
+        Log.i("PlaylistActivity", "onClick called!")
         musicPlayerService!!.setSong(position)
         if(playbackPaused){
             setController()
@@ -237,6 +254,7 @@ class PlaylistActivity : AppCompatActivity(), PlaylistVolley,
     }
 
     override fun getDuration(): Int {
+        Log.i("PlaylistActivity", "Call to getDuration!")
         return if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) musicPlayerService!!.getDuration()
         else 0
     }

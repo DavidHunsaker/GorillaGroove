@@ -16,7 +16,6 @@ import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.TrackResponse
-import com.example.gorillagroove.volleys.SongsVolley
 import com.example.gorillagroove.volleys.authenticatedGetRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,14 +23,13 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
 
 
 class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     MediaPlayer.OnErrorListener,
-    MediaPlayer.OnCompletionListener, CoroutineScope by MainScope(), SongsVolley {
+    MediaPlayer.OnCompletionListener, CoroutineScope by MainScope() {
 
-    private lateinit var player: MediaPlayer
+    private val player = MediaPlayer()
     private lateinit var songs: List<PlaylistSongDTO>
     private lateinit var userRepository: UserRepository
     private val NOTIFY_ID = 1
@@ -44,9 +42,9 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private var token = ""
 
     override fun onCreate() {
+        Log.i("MSP", "onCreate is called")
         super.onCreate()
         songPosition = 0
-        player = MediaPlayer()
         initMusicPlayer()
         userRepository =
             UserRepository(GroovinDB.getDatabase(this@MusicPlayerService).userRepository())
@@ -66,11 +64,12 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     private fun initMusicPlayer() {
+        Log.i("MSP", "Initializing Media Player")
         player.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
-        player.setAudioStreamType(AudioManager.STREAM_MUSIC) // We are targeting API 19, and thus need this deprecated method
-        player.setOnPreparedListener(this@MusicPlayerService)
-        player.setOnCompletionListener(this@MusicPlayerService)
-        player.setOnErrorListener(this@MusicPlayerService)
+        player.setAudioStreamType(AudioManager.STREAM_MUSIC) // We are supported API 19, and thus need this deprecated method
+        player.setOnPreparedListener(this)
+        player.setOnCompletionListener(this)
+        player.setOnErrorListener(this)
     }
 
     fun setSongList(songList: List<PlaylistSongDTO>) {
@@ -197,7 +196,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
         try {
             player.setDataSource(trackResponse.songLink)
-            player.prepareAsync()
+            player.prepare()
         } catch (e: Exception) {
             Log.e("MusicPlayerService", "Error setting data source: $e")
         }
@@ -209,12 +208,6 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         val url = "http://gorillagroove.net/api/file/link/$trackId"
         val response = runBlocking { authenticatedGetRequest(url, token) }
 
-
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
-    }
-
-    override fun onGetSongResponse(response: JSONObject) {
-        val currentTrackResponse =
-            TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
     }
 }

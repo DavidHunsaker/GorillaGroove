@@ -205,7 +205,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private fun getSongStreamInfo(trackId: Long): TrackResponse {
         Log.d("MusicPlayerService", "Geting song info for track=$trackId with token=$token")
 
-        val url = "http://gorillagroove.net/api/file/link/$trackId"
+        val url = "https://gorillagroove.net/api/file/link/$trackId"
         val response = runBlocking { authenticatedGetRequest(url, token) }
 
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())

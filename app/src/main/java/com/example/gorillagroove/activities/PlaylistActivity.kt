@@ -25,7 +25,9 @@ import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.controller.MusicController
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
+import com.example.gorillagroove.dto.PlaylistDTO
 import com.example.gorillagroove.dto.PlaylistSongDTO
+import com.example.gorillagroove.dto.Track
 import com.example.gorillagroove.service.MusicPlayerService
 import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -36,7 +38,6 @@ import kotlinx.android.synthetic.main.app_bar_main.toolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.runBlocking
-import org.json.JSONObject
 import kotlin.system.exitProcess
 
 
@@ -52,11 +53,14 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     private var playbackPaused = false
     private var playIntent: Intent? = null
     private var musicPlayerService: MusicPlayerService? = null
+    private var library: List<Track> = emptyList()
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var repository: UserRepository
     private lateinit var controller: MusicController
+
+    val playlistUrl = "https://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -77,13 +81,16 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
 
-        val playlistUrl = "http://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
+        val libraryUrl =
+            "https://gorillagroove.net/api/track?sort=artist,asc&sort=album,asc&sort=trackNumber,asc&size=75&page=0"
 
-        val response = runBlocking { authenticatedGetRequest(playlistUrl, token) }
+        val response = runBlocking { authenticatedGetRequest(libraryUrl, token) }
 
         val content: String = response.get("content").toString()
 
-        activePlaylist = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
+        activePlaylist =
+            om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
+                .toList()
         recyclerView = findViewById(R.id.rv_playlist)
         recyclerView.layoutManager = LinearLayoutManager(this)
 

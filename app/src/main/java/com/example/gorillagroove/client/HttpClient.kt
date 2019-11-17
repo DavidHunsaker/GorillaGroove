@@ -1,5 +1,6 @@
 package com.example.gorillagroove.client
 
+import android.util.Log
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -20,11 +21,15 @@ fun loginRequest(url: String, email: String, password: String): JSONObject {
 
     var responseVal = JSONObject()
 
+    Log.i("Login Request", "Making request with credentials email=$email, password=$password")
+
     thread {
         client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
-
-            responseVal = (JSONObject(response.body!!.string()))
+            if (response.isSuccessful) {
+                responseVal = (JSONObject(response.body!!.string()))
+            } else {
+                Log.i("Login Request", "Unsuccessful response with code ${response.code}")
+            }
         }
     }.join()
     return responseVal
@@ -41,8 +46,8 @@ fun authenticatedGetRequest(url: String, token: String): JSONObject {
     var responseVal = JSONObject()
 
     thread {
-        client.newCall(request).execute().use {response ->
-            if(!response.isSuccessful) throw IOException("Unexpected code $response")
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
             responseVal = JSONObject(response.body!!.string())
         }
     }.join()

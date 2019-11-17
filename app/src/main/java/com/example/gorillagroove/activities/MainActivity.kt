@@ -12,6 +12,7 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import com.example.gorillagroove.R
+import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.client.loginRequest
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.model.User
@@ -27,6 +28,8 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.json.JSONObject
+import java.io.IOException
 
 
 class MainActivity : AppCompatActivity(),
@@ -74,30 +77,38 @@ class MainActivity : AppCompatActivity(),
 
             val emailFieldText = emailField.text.toString()
             val passwordFieldText = passwordField.text.toString()
-            val loginUrl = "http://gorillagroove.net/api/authentication/login"
+            val loginUrl = "https://gorillagroove.net/api/authentication/login"
+//            val playlistsUrl = "https://gorillagroove.net/api/"
 
             val response = runBlocking { loginRequest(loginUrl, emailFieldText, passwordFieldText) }
 
-            token = response["token"].toString()
-            userName = response["username"].toString()
-            email = response["email"].toString()
+            if (!response.has("token")) {
+                Toast.makeText(this, "Incorrect login credentials, please try again", Toast.LENGTH_LONG).show()
+            } else {
+                token = response["token"].toString()
+                userName = response["username"].toString()
+                email = response["email"].toString()
 
-            findViewById<TextView>(R.id.tv_nav_header).text = userName
+                findViewById<TextView>(R.id.tv_nav_header).text = userName
 
-            launch {
-                withContext(Dispatchers.IO) {
-                    user = repository.findUser(emailFieldText)
+                launch {
+                    withContext(Dispatchers.IO) {
+                        user = repository.findUser(emailFieldText)
 
-                    if (user != null) {
-                        repository.updateToken(user!!.id, token)
-                        Log.i("ffs", "the token is:$token")
-                    } else repository.createUser(userName, emailFieldText, token)
+                        if (user != null) {
+                            repository.updateToken(user!!.id, token)
+                        } else repository.createUser(userName, emailFieldText, token)
+                    }
                 }
-            }
 
-            emailField.text.clear()
-            passwordField.text.clear()
-            emailField.requestFocus()
+                emailField.text.clear()
+                passwordField.text.clear()
+                emailField.requestFocus()
+
+//                val playlists = runBlocking {
+//                    authenticatedGetRequest(playlistsUrl, token)
+//                }
+            }
         }
 
         nav_view.setNavigationItemSelectedListener(this)
@@ -122,7 +133,8 @@ class MainActivity : AppCompatActivity(),
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         if (item.itemId == R.id.action_settings_logout) {
-            Toast.makeText(this, "In the future this will actually log out", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, "In the future this will actually log out", Toast.LENGTH_SHORT)
+                .show()
         }
         return when (item.itemId) {
             R.id.action_settings_logout -> true

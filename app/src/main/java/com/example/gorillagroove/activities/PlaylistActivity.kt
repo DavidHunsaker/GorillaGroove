@@ -59,6 +59,8 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     private lateinit var recyclerView: RecyclerView
     private lateinit var repository: UserRepository
     private lateinit var controller: MusicController
+    private var songCurrentPosition = 0
+    private var songCurrentDuration = 0
 
     val playlistUrl = "https://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
 
@@ -232,9 +234,8 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     }
 
     override fun getDuration(): Int {
-        Log.i("PlaylistActivity", "Call to getDuration!")
-        return if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) musicPlayerService!!.getDuration()
-        else 0
+        if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) songCurrentDuration = musicPlayerService!!.getDuration()
+        return songCurrentDuration
     }
 
     override fun pause() {
@@ -247,8 +248,8 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     }
 
     override fun getCurrentPosition(): Int {
-        return if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) musicPlayerService!!.getPosition()
-        else 0
+        if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) songCurrentPosition = musicPlayerService!!.getPosition()
+        return songCurrentPosition
     }
 
     override fun canSeekBackward(): Boolean {
@@ -277,6 +278,8 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     }
 
     override fun onStop() {
+        songCurrentPosition = 0
+        songCurrentDuration = 0
         controller.hide()
         super.onStop()
     }

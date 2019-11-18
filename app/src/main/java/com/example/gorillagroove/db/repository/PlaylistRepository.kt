@@ -22,7 +22,8 @@ class PlaylistRepository(private val playlistDao: PlaylistDao) {
         playlistDao.createPlaylist(newPlaylist)
     }
 
-    fun createPlaylist(playlist: Playlist){
-        playlistDao.createPlaylist(playlist)
+    fun createPlaylist(playlist: Playlist) {
+        if (playlistDao.getPlaylistByName(playlist.name) == null)
+            playlistDao.createPlaylist(playlist)
     }
 }

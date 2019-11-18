@@ -16,7 +16,7 @@
                 android:layout_height="wrap_content"
                 android:padding="6dp"
                 android:text="Song Title Goes Here"
-                android:textSize="12sp" />
+                android:textSize="15sp" />
 
         <TextView
                 android:id="@+id/tv_artist_name"

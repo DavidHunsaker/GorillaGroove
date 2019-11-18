@@ -5,6 +5,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
 import kotlin.concurrent.thread
@@ -54,3 +55,20 @@ fun authenticatedGetRequest(url: String, token: String): JSONObject {
     return responseVal
 }
 
+fun playlistGetRequest(url: String, token: String): JSONArray {
+    val request = Request.Builder()
+        .url(url)
+        .get()
+        .addHeader("Authorization", "Bearer $token")
+        .build()
+
+    var responseVal = JSONArray()
+
+    thread {
+        client.newCall(request).execute().use { response ->
+            if (!response.isSuccessful) throw IOException("Unexpected code $response")
+            responseVal = JSONArray(response.body!!.string())
+        }
+    }.join()
+    return responseVal
+}

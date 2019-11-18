@@ -2,7 +2,6 @@ package com.example.gorillagroove.activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.widget.EditText
@@ -12,11 +11,15 @@ import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import com.example.gorillagroove.R
-import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.client.loginRequest
+import com.example.gorillagroove.client.playlistGetRequest
 import com.example.gorillagroove.db.GroovinDB
+import com.example.gorillagroove.db.model.Playlist
 import com.example.gorillagroove.db.model.User
+import com.example.gorillagroove.db.repository.PlaylistRepository
 import com.example.gorillagroove.db.repository.UserRepository
+import com.example.gorillagroove.dto.PlaylistDTO
+import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.activity_main.nav_view
@@ -28,8 +31,6 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.io.IOException
 
 
 class MainActivity : AppCompatActivity(),
@@ -39,7 +40,13 @@ class MainActivity : AppCompatActivity(),
     var userName: String = ""
     var email: String = ""
 
-    private lateinit var repository: UserRepository
+
+    private val om = ObjectMapper()
+    private val loginUrl = "https://gorillagroove.net/api/authentication/login"
+    private val playlistsUrl = "https://gorillagroove.net/api/playlist"
+
+    private lateinit var userRepository: UserRepository
+    private lateinit var playlistRepository: PlaylistRepository
 
     private lateinit var passwordField: EditText
     private lateinit var emailField: EditText
@@ -49,7 +56,10 @@ class MainActivity : AppCompatActivity(),
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        repository = UserRepository(GroovinDB.getDatabase(this@MainActivity).userRepository())
+        userRepository =
+            UserRepository(GroovinDB.getDatabase(this@MainActivity).userRepository())
+        playlistRepository =
+            PlaylistRepository(GroovinDB.getDatabase(this@MainActivity).playlistRepository())
 
         emailField = findViewById(R.id.editText2)
         passwordField = findViewById(R.id.editText)
@@ -77,13 +87,15 @@ class MainActivity : AppCompatActivity(),
 
             val emailFieldText = emailField.text.toString()
             val passwordFieldText = passwordField.text.toString()
-            val loginUrl = "https://gorillagroove.net/api/authentication/login"
-//            val playlistsUrl = "https://gorillagroove.net/api/"
 
             val response = runBlocking { loginRequest(loginUrl, emailFieldText, passwordFieldText) }
 
             if (!response.has("token")) {
-                Toast.makeText(this, "Incorrect login credentials, please try again", Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this,
+                    "Incorrect login credentials, please try again",
+                    Toast.LENGTH_LONG
+                ).show()
             } else {
                 token = response["token"].toString()
                 userName = response["username"].toString()
@@ -91,23 +103,32 @@ class MainActivity : AppCompatActivity(),
 
                 findViewById<TextView>(R.id.tv_nav_header).text = userName
 
+                val playlists = runBlocking { playlistGetRequest(playlistsUrl, token) }
+
+                if (playlists.length() > 0) {
+                    val playlistsFromResponse =
+                        om.readValue(playlists.toString(), arrayOf(PlaylistDTO())::class.java)
+                            .map { Playlist(it.id, it.name, it.createdAt) }
+                    launch {
+                        withContext(Dispatchers.IO) {
+                            playlistsFromResponse.forEach { playlistRepository.createPlaylist(it) }
+                        }
+                    }
+                }
+
                 launch {
                     withContext(Dispatchers.IO) {
-                        user = repository.findUser(emailFieldText)
+                        user = userRepository.findUser(emailFieldText)
 
                         if (user != null) {
-                            repository.updateToken(user!!.id, token)
-                        } else repository.createUser(userName, emailFieldText, token)
+                            userRepository.updateToken(user!!.id, token)
+                        } else userRepository.createUser(userName, emailFieldText, token)
                     }
                 }
 
                 emailField.text.clear()
                 passwordField.text.clear()
                 emailField.requestFocus()
-
-//                val playlists = runBlocking {
-//                    authenticatedGetRequest(playlistsUrl, token)
-//                }
             }
         }
 

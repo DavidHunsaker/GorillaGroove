@@ -6,5 +6,5 @@ import com.fasterxml.jackson.databind.annotation.JsonSerialize
 data class PlaylistDTO(
     val id: Long = 0,
     val name: String = "",
-    val createdOn: String = ""
+    val createdAt: String = ""
 )

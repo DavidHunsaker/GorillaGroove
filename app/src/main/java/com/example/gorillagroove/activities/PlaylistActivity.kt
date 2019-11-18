@@ -53,7 +53,7 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     private var playbackPaused = false
     private var playIntent: Intent? = null
     private var musicPlayerService: MusicPlayerService? = null
-    private var library: List<Track> = emptyList()
+    private var playlists: List<PlaylistDTO> = emptyList()
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
 
     private lateinit var recyclerView: RecyclerView

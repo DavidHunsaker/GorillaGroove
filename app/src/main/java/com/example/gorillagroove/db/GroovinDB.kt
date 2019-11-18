@@ -1,16 +1,19 @@
 package com.example.gorillagroove.db
 
+import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import android.content.Context
+import com.example.gorillagroove.db.dao.PlaylistDao
 import com.example.gorillagroove.db.dao.UserDao
+import com.example.gorillagroove.db.model.Playlist
 import com.example.gorillagroove.db.model.User
 
-@Database(entities = [User::class], version = 1, exportSchema = false)
+@Database(entities = [User::class, Playlist::class], version = 1, exportSchema = false)
 abstract class GroovinDB : RoomDatabase() {
 
     abstract fun userRepository(): UserDao
+    abstract fun playlistRepository(): PlaylistDao
 
     companion object {
         @Volatile

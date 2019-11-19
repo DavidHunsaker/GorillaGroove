@@ -12,30 +12,38 @@ import android.os.PowerManager
 import android.util.Log
 import com.example.gorillagroove.R
 import com.example.gorillagroove.activities.PlaylistActivity
+import com.example.gorillagroove.client.authenticatedGetRequest
+import com.example.gorillagroove.client.markListenedRequest
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.TrackResponse
-import com.example.gorillagroove.client.authenticatedGetRequest
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.util.Random
 
+private const val url = "https://gorillagroove.net/api/track/mark-listened"
 
 class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     MediaPlayer.OnErrorListener,
     MediaPlayer.OnCompletionListener, CoroutineScope by MainScope() {
-
-    private val player = MediaPlayer()
+    val player = MediaPlayer()
     private lateinit var songs: List<PlaylistSongDTO>
     private lateinit var userRepository: UserRepository
     private val NOTIFY_ID = 1
 
     private val musicBind: IBinder = MusicBinder()
     private var songPosition = 0
+    private val random = Random()
+
+    private var playCountPosition = 0
+    private var playCountDuration = 0
+    private var markedListened = false
+    private var previousShuffle = 0
 
     private var shuffle = false
     private var songTitle = ""
@@ -81,10 +89,25 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     fun getPosition(): Int {
+        val otherTemp = player.currentPosition
+        val temp = (otherTemp - playCountPosition)
+        Log.i("Music Player Service", "Going to increment playCountPosition by $temp millis")
+        playCountPosition += temp
+        if (!markedListened && playCountDuration > 0 && playCountPosition >= playCountDuration) {
+            Log.i(
+                "Music Player Service",
+                "Good Hell, the songCurrentPosition=${otherTemp} and playCountDuration=$playCountDuration"
+            )
+            markListened(playCountPosition, otherTemp, playCountDuration)
+            markedListened = true
+        }
         return player.currentPosition
     }
 
     fun getDuration(): Int {
+        println("The value of playCountDuration prior to math is: $playCountDuration")
+        if (playCountDuration == 0) playCountDuration = (player.duration * 0.6).toInt()
+        println("Now the value of playCountDuration post math is: $playCountDuration")
         return player.duration
     }
 
@@ -113,14 +136,27 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     fun playPrevious() {
-        songPosition -= 1
-        if (songPosition < 0) songPosition = songs.size - 1
+        if (shuffle) {
+            songPosition = previousShuffle
+        } else {
+            songPosition -= 1
+            if (songPosition < 0) songPosition = songs.size - 1
+        }
         playSong()
     }
 
     fun playNext() {
-        songPosition += 1
-        if (songPosition > songs.size) songPosition = 0
+        if (shuffle) {
+            previousShuffle = songPosition
+            var newSong = songPosition
+            while (newSong == songPosition) {
+                newSong = random.nextInt(songs.size)
+            }
+            songPosition = newSong
+        } else {
+            songPosition += 1
+            if (songPosition > songs.size) songPosition = 0
+        }
         Log.i("MusicPlayerService", "Current songPosition is now=$songPosition")
         playSong()
     }
@@ -157,14 +193,14 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {
+        clearPlayCountInfo()
         mp!!.reset()
         return false
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
+        clearPlayCountInfo()
         if (player.currentPosition > 0) mp!!.reset()
-
-        // FIXME Song play count update here?
         playNext()
     }
 
@@ -183,12 +219,13 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     fun setShuffle() {
-        Log.i("Shuffle Alert!", "Shuffle is now set to $shuffle")
         shuffle = !shuffle
+        Log.i("Shuffle Alert!", "Shuffle is now set to $shuffle")
     }
 
     fun playSong() {
         player.reset()
+        clearPlayCountInfo()
         val song = songs[songPosition]
         songTitle = song.track.name.toString()
 
@@ -202,6 +239,12 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         }
     }
 
+    private fun clearPlayCountInfo() {
+        playCountPosition = 0
+        playCountDuration = 0
+        markedListened = false
+    }
+
     private fun getSongStreamInfo(trackId: Long): TrackResponse {
         Log.d("MusicPlayerService", "Geting song info for track=$trackId with token=$token")
 
@@ -209,5 +252,18 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         val response = runBlocking { authenticatedGetRequest(url, token) }
 
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
+    }
+
+    private fun markListened(
+        playCountPosition: Int,
+        playerCurrentPosition: Int,
+        playCountDuration: Int
+    ) {
+        val trackId = songs[songPosition].track.id
+        Log.d(
+            "MusicPlayerService",
+            "Marking track=$trackId as listened with:\nplayCountPosition=$playCountPosition\nplayerCurrentPosition=$playerCurrentPosition\nplayCountDuration=$playCountDuration"
+        )
+        launch { withContext(Dispatchers.IO) { markListenedRequest(url, trackId, token) } }
     }
 }

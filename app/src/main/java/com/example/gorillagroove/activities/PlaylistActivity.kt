@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -40,6 +41,10 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
+private const val playlistUrl =
+    "https://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
+private const val libraryUrl =
+    "https://gorillagroove.net/api/track?sort=artist,asc&sort=album,asc&sort=trackNumber,asc&size=600&page=0"
 
 class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
     CoroutineScope by MainScope(), MediaPlayerControl, OnItemClickListener {
@@ -62,8 +67,6 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     private var songCurrentPosition = 0
     private var songCurrentDuration = 0
 
-    val playlistUrl = "https://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
@@ -82,9 +85,6 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         )
         drawer_layout.addDrawerListener(toggle)
         toggle.syncState()
-
-        val libraryUrl =
-            "https://gorillagroove.net/api/track?sort=artist,asc&sort=album,asc&sort=trackNumber,asc&size=75&page=0"
 
         val response = runBlocking { authenticatedGetRequest(libraryUrl, token) }
 

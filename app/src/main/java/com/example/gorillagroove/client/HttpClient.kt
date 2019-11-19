@@ -72,3 +72,14 @@ fun playlistGetRequest(url: String, token: String): JSONArray {
     }.join()
     return responseVal
 }
+
+fun markListenedRequest(url: String, trackId: Long, token: String) {
+    val body = """{ "trackId": $trackId }""".trimIndent()
+    val request = Request.Builder()
+        .url(url)
+        .post(RequestBody.create("application/json".toMediaTypeOrNull(), body))
+        .header("Authorization", "Bearer $token")
+        .build()
+
+    thread { client.newCall(request).execute() }.join()
+}

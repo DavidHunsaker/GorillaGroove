@@ -24,7 +24,6 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.util.Random
 
 private const val markListenedUrl = "https://gorillagroove.net/api/track/mark-listened"
 private const val trackUrl = "https://gorillagroove.net/api/file/link/"
@@ -32,24 +31,23 @@ private const val trackUrl = "https://gorillagroove.net/api/file/link/"
 class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     MediaPlayer.OnErrorListener,
     MediaPlayer.OnCompletionListener, CoroutineScope by MainScope() {
-    private val player = MediaPlayer()
-    private lateinit var songs: List<PlaylistSongDTO>
-    private lateinit var userRepository: UserRepository
     private val NOTIFY_ID = 1
-
+    private val player = MediaPlayer()
     private val musicBind: IBinder = MusicBinder()
-    private var songPosition = 0
-    private val random = Random()
 
+    private var token = ""
+    private var songTitle = ""
+    private var shuffle = false
+    private var songPosition = 0
     private var lastRecordedTime = 0
     private var playCountPosition = 0
     private var playCountDuration = 0
     private var markedListened = false
-    private var previousShuffle = 0
+    private var currentSongPosition = 0
+    private var shuffledSongs: List<Int> = emptyList()
 
-    private var shuffle = false
-    private var songTitle = ""
-    private var token = ""
+    private lateinit var userRepository: UserRepository
+    private lateinit var songs: List<PlaylistSongDTO>
 
     override fun onCreate() {
         Log.i("MSP", "onCreate is called")
@@ -88,6 +86,10 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
     fun setSong(songIndex: Int) {
         songPosition = songIndex
+        currentSongPosition = songIndex
+        if(shuffle) {
+            songPosition = shuffledSongs.indexOf(songIndex)
+        }
     }
 
     fun getPosition(): Int {
@@ -134,27 +136,16 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     fun playPrevious() {
-        if (shuffle) {
-            songPosition = previousShuffle
-        } else {
-            songPosition -= 1
-            if (songPosition < 0) songPosition = songs.size - 1
-        }
+        songPosition -= 1
+        if (songPosition < 0) songPosition = songs.size - 1
+
         playSong()
     }
 
     fun playNext() {
-        if (shuffle) {
-            previousShuffle = songPosition
-            var newSong = songPosition
-            while (newSong == songPosition) {
-                newSong = random.nextInt(songs.size)
-            }
-            songPosition = newSong
-        } else {
-            songPosition += 1
-            if (songPosition > songs.size) songPosition = 0
-        }
+        songPosition += 1
+        if (songPosition >= songs.size) songPosition = 0
+
         Log.i("MusicPlayerService", "Current songPosition is now=$songPosition")
         playSong()
     }
@@ -219,13 +210,24 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
     fun setShuffle() {
         shuffle = !shuffle
+        if (shuffle) {
+            shuffledSongs = songs.indices.toList().shuffled()
+            Log.i("Shuffling", "Shuffled list is: $shuffledSongs\n Songs list is ${songs.indices.toList()}")
+        } else {
+            songPosition = currentSongPosition
+        }
         Log.i("Shuffle Alert!", "Shuffle is now set to $shuffle")
     }
 
     fun playSong() {
         player.reset()
         clearPlayCountInfo()
-        val song = songs[songPosition]
+        val song = if (shuffle) {
+            currentSongPosition = shuffledSongs[songPosition]
+            songs[currentSongPosition]
+        } else {
+            songs[songPosition]
+        }
         songTitle = song.track.name.toString()
 
         val trackResponse = getSongStreamInfo(song.track.id)
@@ -245,9 +247,9 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     private fun getSongStreamInfo(trackId: Long): TrackResponse {
-        Log.d("MusicPlayerService", "Geting song info for track=$trackId with token=$token")
+        Log.d("MusicPlayerService", "Getting song info for track=$trackId with token=$token")
 
-        val response = runBlocking { authenticatedGetRequest(trackUrl+"$trackId", token) }
+        val response = runBlocking { authenticatedGetRequest(trackUrl + "$trackId", token) }
 
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
     }
@@ -262,6 +264,14 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             "MusicPlayerService",
             "Marking track=$trackId as listened with:\nplayCountPosition=$playCountPosition\nplayerCurrentPosition=$playerCurrentPosition\nplayCountDuration=$playCountDuration"
         )
-        launch { withContext(Dispatchers.IO) { markListenedRequest(markListenedUrl, trackId, token) } }
+        launch {
+            withContext(Dispatchers.IO) {
+                markListenedRequest(
+                    markListenedUrl,
+                    trackId,
+                    token
+                )
+            }
+        }
     }
 }

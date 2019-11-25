@@ -6,7 +6,6 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -39,6 +38,9 @@ import kotlinx.android.synthetic.main.app_bar_main.toolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.runBlocking
+import org.greenrobot.eventbus.EventBus
+import org.greenrobot.eventbus.Subscribe
+import org.greenrobot.eventbus.ThreadMode
 import kotlin.system.exitProcess
 
 private const val playlistUrl =
@@ -51,7 +53,6 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
 
     private val om = ObjectMapper()
 
-    private var paused = false
     private var musicBound = false
     private var token: String = ""
     private var userName: String = ""
@@ -71,6 +72,10 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
         setSupportActionBar(toolbar)
+
+        if (EventBus.getDefault().isRegistered(this@PlaylistActivity)) {
+            EventBus.getDefault().register(this@PlaylistActivity)
+        }
 
         repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
         token = intent.getStringExtra("token")
@@ -130,15 +135,16 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
             bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE)
             startService(playIntent)
         }
+        if (!EventBus.getDefault().isRegistered(this@PlaylistActivity)) {
+            EventBus.getDefault().register(this@PlaylistActivity)
+        }
     }
 
     override fun onClick(view: View, position: Int) {
         Log.i("PlaylistActivity", "onClick called!")
         musicPlayerService!!.setSong(position)
-        if (playbackPaused) {
-            setController()
-            playbackPaused = false
-        }
+        setController()
+        playbackPaused = false
         musicPlayerService!!.playSong()
         controller.show(0) // Passing 0 so controller always shows
     }
@@ -172,6 +178,9 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     }
 
     override fun onDestroy() {
+        if (EventBus.getDefault().isRegistered(this@PlaylistActivity)) {
+            EventBus.getDefault().unregister(this@PlaylistActivity)
+        }
         stopService(playIntent)
         musicPlayerService = null
         super.onDestroy()
@@ -198,12 +207,26 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         return true
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onEndOfSongEvent(event: EndOfSongEvent) {
+        Log.i("EventBus", "Message received ${event.message}")
+        setController()
+        controller.show(0)
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onMediaPlayerLoadedEvent(event: MediaPlayerLoadedEvent) {
+        Log.i("EventBus", "Message received ${event.message}")
+        controller.show(0)
+    }
+
     private fun setController() {
         controller = MusicController(this@PlaylistActivity)
         controller.setPrevNextListeners({ playNext() }, { playPrevious() })
         controller.setMediaPlayer(this)
         controller.setAnchorView(findViewById(R.id.rv_playlist))
         controller.isEnabled = true
+        playbackPaused = false
     }
 
     private fun playNext() {
@@ -234,7 +257,8 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     }
 
     override fun getDuration(): Int {
-        if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) songCurrentDuration = musicPlayerService!!.getDuration()
+        if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) songCurrentDuration =
+            musicPlayerService!!.getDuration()
         return songCurrentDuration
     }
 
@@ -248,7 +272,8 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     }
 
     override fun getCurrentPosition(): Int {
-        if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) songCurrentPosition = musicPlayerService!!.getPosition()
+        if (musicPlayerService != null && musicBound && musicPlayerService!!.isPlaying()) songCurrentPosition =
+            musicPlayerService!!.getPosition()
         return songCurrentPosition
     }
 
@@ -266,22 +291,15 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
 
     override fun onPause() {
         super.onPause()
-        paused = true
+        playbackPaused = true
     }
 
     override fun onResume() {
         super.onResume()
-        if (paused) {
+        if (playbackPaused) {
             setController()
-            paused = false
+            playbackPaused = false
         }
-    }
-
-    override fun onStop() {
-        songCurrentPosition = 0
-        songCurrentDuration = 0
-        controller.hide()
-        super.onStop()
     }
 
     override fun getBufferPercentage(): Int {
@@ -291,4 +309,12 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     override fun getAudioSessionId(): Int {
         return musicPlayerService!!.getAudioSessionId()
     }
+}
+
+class EndOfSongEvent(message: String) {
+    val message = message
+}
+
+class MediaPlayerLoadedEvent(message: String) {
+    val message = message
 }

@@ -11,6 +11,8 @@ import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
 import com.example.gorillagroove.R
+import com.example.gorillagroove.activities.EndOfSongEvent
+import com.example.gorillagroove.activities.MediaPlayerLoadedEvent
 import com.example.gorillagroove.activities.PlaylistActivity
 import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.client.markListenedRequest
@@ -24,6 +26,7 @@ import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import org.greenrobot.eventbus.EventBus
 
 private const val markListenedUrl = "https://gorillagroove.net/api/track/mark-listened"
 private const val trackUrl = "https://gorillagroove.net/api/file/link/"
@@ -37,6 +40,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
     private var token = ""
     private var songTitle = ""
+    private var artist = ""
     private var shuffle = false
     private var songPosition = 0
     private var lastRecordedTime = 0
@@ -63,6 +67,11 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         }
     }
 
+    override fun onTaskRemoved(rootIntent: Intent?) {
+        super.onTaskRemoved(rootIntent)
+        stopSelf()
+    }
+
     private fun userToken() {
         try {
             token = userRepository.findUser("test@gorilla.groove")!!.token!!
@@ -87,7 +96,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     fun setSong(songIndex: Int) {
         songPosition = songIndex
         currentSongPosition = songIndex
-        if(shuffle) {
+        if (shuffle) {
             songPosition = shuffledSongs.indexOf(songIndex)
         }
     }
@@ -172,14 +181,15 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         val builder = Notification.Builder(applicationContext)
 
         builder.setContentIntent(pendingIntent)
-            .setSmallIcon(R.drawable.play)
-            .setTicker(songTitle)
+            .setSmallIcon(R.drawable.logo)
+            .setTicker("$songTitle - $artist")
             .setOngoing(true)
-            .setContentTitle("Playing")
-            .setContentText(songTitle)
+            .setContentTitle("Gorilla Groove")
+            .setContentText("$songTitle - $artist")
         val not = builder.build()
 
         startForeground(NOTIFY_ID, not)
+        EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
     }
 
     override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {
@@ -192,6 +202,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         clearPlayCountInfo()
         if (player.currentPosition > 0) mp!!.reset()
         playNext()
+        EventBus.getDefault().post(EndOfSongEvent("Resetting Music Player"))
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -212,7 +223,10 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         shuffle = !shuffle
         if (shuffle) {
             shuffledSongs = songs.indices.toList().shuffled()
-            Log.i("Shuffling", "Shuffled list is: $shuffledSongs\n Songs list is ${songs.indices.toList()}")
+            Log.i(
+                "Shuffling",
+                "Shuffled list is: $shuffledSongs\n Songs list is ${songs.indices.toList()}"
+            )
         } else {
             songPosition = currentSongPosition
         }
@@ -229,6 +243,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             songs[songPosition]
         }
         songTitle = song.track.name.toString()
+        artist = song.track.artist.toString()
 
         val trackResponse = getSongStreamInfo(song.track.id)
 

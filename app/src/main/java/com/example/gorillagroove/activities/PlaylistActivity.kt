@@ -75,7 +75,6 @@ class PlaylistActivity : AppCompatActivity(),
             EventBus.getDefault().register(this@PlaylistActivity)
         }
 
-        repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
         token = intent.getStringExtra("token")
         userName = intent.getStringExtra("username")
         email = intent.getStringExtra("email")
@@ -88,7 +87,7 @@ class PlaylistActivity : AppCompatActivity(),
             om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
                 .toList()
         recyclerView = findViewById(R.id.rv_playlist)
-        recyclerView.layoutManager = LinearLayoutManager(this@PlaylistActivity)
+        recyclerView.layoutManager = LinearLayoutManager(this)
 
         val playlistAdapter = PlaylistAdapter(activePlaylist)
         recyclerView.adapter = playlistAdapter
@@ -119,6 +118,8 @@ class PlaylistActivity : AppCompatActivity(),
         super.onStart()
         if (playIntent == null) {
             playIntent = Intent(this@PlaylistActivity, MusicPlayerService::class.java)
+                .putExtra("email", email)
+
             bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE)
             startService(playIntent)
         }

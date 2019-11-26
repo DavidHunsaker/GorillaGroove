@@ -39,6 +39,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private val musicBind: IBinder = MusicBinder()
 
     private var token = ""
+    private var email = ""
     private var songTitle = ""
     private var artist = ""
     private var shuffle = false
@@ -58,11 +59,14 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         super.onCreate()
         songPosition = 0
         initMusicPlayer()
+
         userRepository =
             UserRepository(GroovinDB.getDatabase(this@MusicPlayerService).userRepository())
-        launch {
-            withContext(Dispatchers.IO) {
-                userToken()
+        if(token.isBlank()) {
+            launch {
+                withContext(Dispatchers.IO) {
+                    userToken()
+                }
             }
         }
     }
@@ -74,9 +78,9 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
     private fun userToken() {
         try {
-            token = userRepository.findUser("test@gorilla.groove")!!.token!!
+            token = userRepository.findUser(email)!!.token!!
         } catch (e: Exception) {
-            Log.e("MusicPlayerService", "something bad happened: $e")
+            Log.e("MusicPlayerService", "User not found!: $e")
         }
     }
 
@@ -205,6 +209,10 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     override fun onBind(intent: Intent?): IBinder? {
+        if (intent != null) {
+            if (intent.hasExtra("email")) email = intent.getStringExtra("email")
+            if (intent.hasExtra("token")) token = intent.getStringExtra("token")
+        }
         return musicBind
     }
 

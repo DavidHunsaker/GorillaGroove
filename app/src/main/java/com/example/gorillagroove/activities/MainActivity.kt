@@ -103,19 +103,6 @@ class MainActivity : AppCompatActivity(),
 
                 findViewById<TextView>(R.id.tv_nav_header).text = userName
 
-                val playlists = runBlocking { playlistGetRequest(playlistsUrl, token) }
-
-                if (playlists.length() > 0) {
-                    val playlistsFromResponse =
-                        om.readValue(playlists.toString(), arrayOf(PlaylistDTO())::class.java)
-                            .map { Playlist(it.id, it.name, it.createdAt) }
-                    launch {
-                        withContext(Dispatchers.IO) {
-                            playlistsFromResponse.forEach { playlistRepository.createPlaylist(it) }
-                        }
-                    }
-                }
-
                 launch {
                     withContext(Dispatchers.IO) {
                         user = userRepository.findUser(emailFieldText)

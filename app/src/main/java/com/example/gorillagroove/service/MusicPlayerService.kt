@@ -1,15 +1,20 @@
 package com.example.gorillagroove.service
 
 import android.app.Notification
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Binder
+import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import androidx.core.app.NotificationCompat
 import com.example.gorillagroove.R
 import com.example.gorillagroove.activities.EndOfSongEvent
 import com.example.gorillagroove.activities.MediaPlayerLoadedEvent
@@ -62,7 +67,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
         userRepository =
             UserRepository(GroovinDB.getDatabase(this@MusicPlayerService).userRepository())
-        if(token.isBlank()) {
+        if (token.isBlank()) {
             launch {
                 withContext(Dispatchers.IO) {
                     userToken()
@@ -182,17 +187,40 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             PendingIntent.FLAG_UPDATE_CURRENT
         )
 
-        val builder = Notification.Builder(applicationContext)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val NOTIFICATION_CHANNEL_ID = "channel_id"
+            val CHANNEL_NAME = "Notification Channel"
+            val importance = NotificationManager.IMPORTANCE_LOW
+            val notificationChannel =
+                NotificationChannel(NOTIFICATION_CHANNEL_ID, CHANNEL_NAME, importance)
+            notificationChannel.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
+            val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(notificationChannel)
 
-        builder.setContentIntent(pendingIntent)
-            .setSmallIcon(R.drawable.logo)
-            .setTicker("$songTitle - $artist")
-            .setOngoing(true)
-            .setContentTitle("Gorilla Groove")
-            .setContentText("$songTitle - $artist")
-        val not = builder.build()
+            val notificationCompat = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setContentTitle("Gorilla Groove")
+                .setContentText("$songTitle - $artist")
+                .setSmallIcon(R.drawable.logo)
+                .setTicker("$songTitle - $artist")
+                .setOngoing(true)
 
-        startForeground(NOTIFY_ID, not)
+            notificationManager.notify(NOTIFY_ID, notificationCompat.build())
+        } else {
+
+            val builder = Notification.Builder(applicationContext)
+
+            builder.setContentIntent(pendingIntent)
+                .setSmallIcon(R.drawable.logo)
+                .setTicker("$songTitle - $artist")
+                .setOngoing(true)
+                .setContentTitle("Gorilla Groove")
+                .setContentText("$songTitle - $artist")
+
+
+            val not = builder.build()
+
+            startForeground(NOTIFY_ID, not)
+        }
         EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
     }
 
@@ -295,5 +323,11 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
                 )
             }
         }
+    }
+
+
+    fun higherSDKNotifications(): NotificationChannel? {
+
+        return null
     }
 }

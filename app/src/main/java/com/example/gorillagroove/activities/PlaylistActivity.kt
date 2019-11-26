@@ -13,7 +13,6 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.MediaController.MediaPlayerControl
-import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -31,9 +30,7 @@ import com.example.gorillagroove.dto.Track
 import com.example.gorillagroove.service.MusicPlayerService
 import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
-import kotlinx.android.synthetic.main.activity_main.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.MainScope
@@ -48,7 +45,7 @@ private const val playlistUrl =
 private const val libraryUrl =
     "https://gorillagroove.net/api/track?sort=artist,asc&sort=album,asc&sort=trackNumber,asc&size=600&page=0"
 
-class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSelectedListener,
+class PlaylistActivity : AppCompatActivity(),
     CoroutineScope by MainScope(), MediaPlayerControl, OnItemClickListener {
 
     private val om = ObjectMapper()
@@ -83,16 +80,6 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         userName = intent.getStringExtra("username")
         email = intent.getStringExtra("email")
 
-        val toggle = ActionBarDrawerToggle(
-            this,
-            drawer_layout,
-            toolbar,
-            R.string.navigation_drawer_open,
-            R.string.navigation_drawer_close
-        )
-        drawer_layout.addDrawerListener(toggle)
-        toggle.syncState()
-
         val response = runBlocking { authenticatedGetRequest(libraryUrl, token) }
 
         val content: String = response.get("content").toString()
@@ -108,8 +95,6 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         playlistAdapter.setClickListener(this)
 
         setController()
-
-        nav_view.setNavigationItemSelectedListener(this)
     }
 
     //connect to the service
@@ -186,29 +171,6 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         stopService(playIntent)
         musicPlayerService = null
         super.onDestroy()
-    }
-
-    override fun onNavigationItemSelected(item: MenuItem): Boolean {
-        // Handle navigation view item clicks here.
-        when (item.itemId) {
-            R.id.nav_login -> {
-                val intent = Intent(applicationContext, MainActivity::class.java)
-                intent.putExtra("token", token)
-                intent.putExtra("username", userName)
-                intent.putExtra("email", email)
-                startActivity(intent)
-            }
-
-            R.id.nav_playlists -> {
-                val intent = Intent(applicationContext, PlaylistActivity::class.java)
-                intent.putExtra("token", token)
-                intent.putExtra("username", userName)
-                intent.putExtra("email", email)
-                startActivity(intent)
-            }
-        }
-        drawer_layout.closeDrawer(GravityCompat.START)
-        return true
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)

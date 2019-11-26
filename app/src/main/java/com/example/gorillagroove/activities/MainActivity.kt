@@ -166,14 +166,7 @@ class MainActivity : AppCompatActivity(),
     override fun onNavigationItemSelected(item: MenuItem): Boolean {
         // Handle navigation view item clicks here.
         when (item.itemId) {
-            R.id.nav_login -> {
-                val intent = Intent(applicationContext, MainActivity::class.java)
-                intent.putExtra("token", token)
-                intent.putExtra("username", userName)
-                intent.putExtra("email", email)
-                startActivity(intent)
-            }
-            R.id.nav_playlists -> {
+            R.id.nav_library -> {
                 if (token.isNotBlank()) {
                     val intent = Intent(applicationContext, PlaylistActivity::class.java)
                     intent.putExtra("token", token)

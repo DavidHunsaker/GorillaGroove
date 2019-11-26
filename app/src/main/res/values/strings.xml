@@ -7,5 +7,6 @@
     <string name="nav_header_desc">Navigation header</string>
     <string name="action_logout">Logout</string>
     <string name="playlists">Playlists</string>
+    <string name="library">Library</string>
     <string name="login">Login</string>
 </resources>

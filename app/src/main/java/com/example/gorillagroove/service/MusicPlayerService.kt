@@ -201,7 +201,6 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     override fun onCompletion(mp: MediaPlayer?) {
         clearPlayCountInfo()
         if (player.currentPosition > 0) mp!!.reset()
-        playNext()
         EventBus.getDefault().post(EndOfSongEvent("Resetting Music Player"))
     }
 

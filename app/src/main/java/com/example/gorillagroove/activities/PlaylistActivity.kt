@@ -55,6 +55,7 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
 
     private var musicBound = false
     private var token: String = ""
+    private var email: String = ""
     private var userName: String = ""
     private var playbackPaused = false
     private var playIntent: Intent? = null
@@ -80,6 +81,7 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
         repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
         token = intent.getStringExtra("token")
         userName = intent.getStringExtra("username")
+        email = intent.getStringExtra("email")
 
         val toggle = ActionBarDrawerToggle(
             this,
@@ -99,7 +101,7 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
             om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
                 .toList()
         recyclerView = findViewById(R.id.rv_playlist)
-        recyclerView.layoutManager = LinearLayoutManager(this)
+        recyclerView.layoutManager = LinearLayoutManager(this@PlaylistActivity)
 
         val playlistAdapter = PlaylistAdapter(activePlaylist)
         recyclerView.adapter = playlistAdapter
@@ -193,6 +195,7 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
                 val intent = Intent(applicationContext, MainActivity::class.java)
                 intent.putExtra("token", token)
                 intent.putExtra("username", userName)
+                intent.putExtra("email", email)
                 startActivity(intent)
             }
 
@@ -200,6 +203,7 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
                 val intent = Intent(applicationContext, PlaylistActivity::class.java)
                 intent.putExtra("token", token)
                 intent.putExtra("username", userName)
+                intent.putExtra("email", email)
                 startActivity(intent)
             }
         }
@@ -210,8 +214,7 @@ class PlaylistActivity : AppCompatActivity(), NavigationView.OnNavigationItemSel
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
     fun onEndOfSongEvent(event: EndOfSongEvent) {
         Log.i("EventBus", "Message received ${event.message}")
-        setController()
-        controller.show(0)
+        playNext()
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)

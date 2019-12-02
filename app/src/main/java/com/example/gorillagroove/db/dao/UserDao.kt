@@ -11,9 +11,15 @@ interface UserDao {
     @Query("SELECT * FROM User WHERE User.email = :email")
     fun findByEmail(email: String): User?
 
-    @Query(value = "UPDATE USER SET token = :token WHERE id = :userId")
+    @Query(value = "UPDATE User SET token = :token, loggedIn = 1 WHERE id = :userId")
     fun updateToken(userId: Long, token: String)
 
     @Insert
     fun createUser(user: User)
+
+    @Query("SELECT * FROM User WHERE User.loggedIn = 1 LIMIT 1")
+    fun findLastLoggedIn(): User?
+
+    @Query("UPDATE User SET loggedIn = 0, token = NULL WHERE id = :userId")
+    fun logout(userId: Long)
 }

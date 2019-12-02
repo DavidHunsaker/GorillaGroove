@@ -24,26 +24,23 @@ import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.controller.MusicController
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
-import com.example.gorillagroove.dto.PlaylistDTO
 import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.Track
 import com.example.gorillagroove.service.MusicPlayerService
 import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
+import com.example.gorillagroove.utils.URLs
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 import org.greenrobot.eventbus.Subscribe
 import org.greenrobot.eventbus.ThreadMode
 import kotlin.system.exitProcess
-
-private const val playlistUrl =
-    "https://gorillagroove.net/api/playlist/track?playlistId=49&size=200"
-private const val libraryUrl =
-    "https://gorillagroove.net/api/track?sort=artist,asc&sort=album,asc&sort=trackNumber,asc&size=600&page=0"
 
 class PlaylistActivity : AppCompatActivity(),
     CoroutineScope by MainScope(), MediaPlayerControl, OnItemClickListener {
@@ -57,7 +54,6 @@ class PlaylistActivity : AppCompatActivity(),
     private var playbackPaused = false
     private var playIntent: Intent? = null
     private var musicPlayerService: MusicPlayerService? = null
-    private var playlists: List<PlaylistDTO> = emptyList()
     private var activePlaylist: List<PlaylistSongDTO> = emptyList()
 
     private lateinit var recyclerView: RecyclerView
@@ -71,6 +67,8 @@ class PlaylistActivity : AppCompatActivity(),
         setContentView(R.layout.activity_playlist)
         setSupportActionBar(toolbar)
 
+        repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
+
         if (EventBus.getDefault().isRegistered(this@PlaylistActivity)) {
             EventBus.getDefault().register(this@PlaylistActivity)
         }
@@ -79,7 +77,7 @@ class PlaylistActivity : AppCompatActivity(),
         userName = intent.getStringExtra("username")
         email = intent.getStringExtra("email")
 
-        val response = runBlocking { authenticatedGetRequest(libraryUrl, token) }
+        val response = runBlocking { authenticatedGetRequest(URLs.LIBRARY, token) }
 
         val content: String = response.get("content").toString()
 
@@ -159,6 +157,12 @@ class PlaylistActivity : AppCompatActivity(),
             R.id.action_end -> {
                 stopService(playIntent)
                 musicPlayerService = null
+                exitProcess(0)
+            }
+            R.id.action_settings_logout -> {
+                val user =
+                    runBlocking { withContext(Dispatchers.IO) { repository.findUser(email) } }
+                logout(user!!.id)
                 exitProcess(0)
             }
         }
@@ -274,6 +278,16 @@ class PlaylistActivity : AppCompatActivity(),
 
     override fun getAudioSessionId(): Int {
         return musicPlayerService!!.getAudioSessionId()
+    }
+
+    private fun logout(userId: Long) {
+        runBlocking {
+            withContext(Dispatchers.IO) {
+                repository.logout(userId)
+                stopService(playIntent)
+                musicPlayerService = null
+            }
+        }
     }
 }
 

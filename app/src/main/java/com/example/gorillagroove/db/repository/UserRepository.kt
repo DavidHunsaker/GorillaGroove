@@ -22,9 +22,22 @@ class UserRepository(private val userDao: UserDao) {
 
     fun createUser(userName: String, email: String, token: String?) {
         Log.i(userRepositoryTag, "Creating user with username: $userName and email: $email")
-        val user = User(id  = 0, userName = userName, email = email, token =  token)
-        val createdUser = userDao.createUser(user)
-        Log.i(userRepositoryTag, "created user is $createdUser")
+        val user = User(id  = 0, userName = userName, email = email, token =  token, loggedIn = 1)
+        userDao.createUser(user)
+    }
+
+    fun lastLoggedInUser(): User? {
+        Log.i(userRepositoryTag, "Fetching the user that last logged in")
+        val user = userDao.findLastLoggedIn()
+        if(user != null) {
+            Log.i(userRepositoryTag, "The last logged in user was: $user")
+        }
+        return user
+    }
+
+    fun logout(userId: Long) {
+        Log.i(userRepositoryTag, "Logging out user")
+        userDao.logout(userId)
     }
 
 }

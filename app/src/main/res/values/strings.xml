@@ -9,4 +9,6 @@
     <string name="playlists">Playlists</string>
     <string name="library">Library</string>
     <string name="login">Login</string>
+    <string name="end">End</string>
+    <string name="shuffle">Shuffle</string>
 </resources>

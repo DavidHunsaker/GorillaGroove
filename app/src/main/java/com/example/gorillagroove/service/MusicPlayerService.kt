@@ -24,6 +24,7 @@ import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.TrackResponse
+import com.example.gorillagroove.utils.URLs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -31,9 +32,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
-
-private const val markListenedUrl = "https://gorillagroove.net/api/track/mark-listened"
-private const val trackUrl = "https://gorillagroove.net/api/file/link/"
 
 class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     MediaPlayer.OnErrorListener,
@@ -298,7 +296,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private fun getSongStreamInfo(trackId: Long): TrackResponse {
         Log.d("MusicPlayerService", "Getting song info for track=$trackId with token=$token")
 
-        val response = runBlocking { authenticatedGetRequest(trackUrl + "$trackId", token) }
+        val response = runBlocking { authenticatedGetRequest(URLs.TRACK + "$trackId", token) }
 
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
     }
@@ -316,7 +314,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         launch {
             withContext(Dispatchers.IO) {
                 markListenedRequest(
-                    markListenedUrl,
+                    URLs.MARK_LISTENED,
                     trackId,
                     token
                 )

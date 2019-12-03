@@ -8,9 +8,12 @@ import okhttp3.RequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
+import java.net.SocketTimeoutException
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
-private val client = OkHttpClient()
+private const val HTTPCLIENT_TAG = "HTTP_CLIENT"
+private val client = OkHttpClient().newBuilder().connectTimeout(15, TimeUnit.SECONDS).build()
 
 fun loginRequest(url: String, email: String, password: String): JSONObject {
     val body = """{ "email": "$email", "password": "$password" }""".trimIndent()
@@ -25,12 +28,16 @@ fun loginRequest(url: String, email: String, password: String): JSONObject {
     Log.i("Login Request", "Making request with credentials email=$email, password=$password")
 
     thread {
-        client.newCall(request).execute().use { response ->
-            if (response.isSuccessful) {
-                responseVal = (JSONObject(response.body!!.string()))
-            } else {
-                Log.i("Login Request", "Unsuccessful response with code ${response.code}")
+        try {
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) {
+                    responseVal = (JSONObject(response.body!!.string()))
+                } else {
+                    Log.e("Login Request", "Unsuccessful response with code ${response.code}")
+                }
             }
+        } catch(e: SocketTimeoutException) {
+            Log.e(HTTPCLIENT_TAG, "Socket Timeout Exception occured when making login request")
         }
     }.join()
     return responseVal
@@ -47,29 +54,17 @@ fun authenticatedGetRequest(url: String, token: String): JSONObject {
     var responseVal = JSONObject()
 
     thread {
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
-            responseVal = JSONObject(response.body!!.string())
+        try {
+            client.newCall(request).execute().use { response ->
+                if (!response.isSuccessful)
+                    Log.e(HTTPCLIENT_TAG, "Unexpected Response Code ${response.code}")
+                responseVal = JSONObject(response.body!!.string())
+            }
+        } catch(e: SocketTimeoutException) {
+            Log.e(HTTPCLIENT_TAG, "Socket Timeout Occurred When Making GET Request To $url")
         }
     }.join()
-    return responseVal
-}
 
-fun playlistGetRequest(url: String, token: String): JSONArray {
-    val request = Request.Builder()
-        .url(url)
-        .get()
-        .addHeader("Authorization", "Bearer $token")
-        .build()
-
-    var responseVal = JSONArray()
-
-    thread {
-        client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) throw IOException("Unexpected code $response")
-            responseVal = JSONArray(response.body!!.string())
-        }
-    }.join()
     return responseVal
 }
 
@@ -81,5 +76,20 @@ fun markListenedRequest(url: String, trackId: Long, token: String) {
         .header("Authorization", "Bearer $token")
         .build()
 
-    thread { client.newCall(request).execute() }.join()
+    thread {
+        try {
+            client.newCall(request).execute().use { response ->
+                if (response.isSuccessful) Log.i(
+                    HTTPCLIENT_TAG,
+                    "Track $trackId successfully marked listened"
+                )
+                else Log.e(HTTPCLIENT_TAG, "Track $trackId failed to update play count")
+            }
+        } catch (e: SocketTimeoutException) {
+            Log.e(
+                HTTPCLIENT_TAG,
+                "There was a network timeout when updating play count for track=$trackId"
+            )
+        }
+    }.join()
 }

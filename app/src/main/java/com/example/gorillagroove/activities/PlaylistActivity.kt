@@ -79,11 +79,14 @@ class PlaylistActivity : AppCompatActivity(),
 
         val response = runBlocking { authenticatedGetRequest(URLs.LIBRARY, token) }
 
-        val content: String = response.get("content").toString()
+        // FIXME Need some form of refreshing
+        if (response.length() > 0) {
+            val content: String = response.get("content").toString()
 
-        activePlaylist =
-            om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
-                .toList()
+            activePlaylist =
+                om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
+                    .toList()
+        }
         recyclerView = findViewById(R.id.rv_playlist)
         recyclerView.layoutManager = LinearLayoutManager(this)
 

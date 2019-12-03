@@ -33,6 +33,8 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 
+private const val MUSIC_PLAYER_SERVICE_TAG = "MusicPlayerService"
+
 class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     MediaPlayer.OnErrorListener,
     MediaPlayer.OnCompletionListener, CoroutineScope by MainScope() {
@@ -57,7 +59,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private lateinit var songs: List<PlaylistSongDTO>
 
     override fun onCreate() {
-        Log.i("MSP", "onCreate is called")
+        Log.i(MUSIC_PLAYER_SERVICE_TAG, "onCreate is called")
         super.onCreate()
         songPosition = 0
         initMusicPlayer()
@@ -82,12 +84,12 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         try {
             token = userRepository.findUser(email)!!.token!!
         } catch (e: Exception) {
-            Log.e("MusicPlayerService", "User not found!: $e")
+            Log.e(MUSIC_PLAYER_SERVICE_TAG, "User not found!: $e")
         }
     }
 
     private fun initMusicPlayer() {
-        Log.i("MSP", "Initializing Media Player")
+        Log.i(MUSIC_PLAYER_SERVICE_TAG, "Initializing Media Player")
         player.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
         player.setAudioStreamType(AudioManager.STREAM_MUSIC) // We are supported API 19, and thus need this deprecated method
         player.setOnPreparedListener(this)
@@ -161,7 +163,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         songPosition += 1
         if (songPosition >= songs.size) songPosition = 0
 
-        Log.i("MusicPlayerService", "Current songPosition is now=$songPosition")
+        Log.i(MUSIC_PLAYER_SERVICE_TAG, "Current songPosition is now=$songPosition")
         playSong()
     }
 
@@ -256,13 +258,13 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         if (shuffle) {
             shuffledSongs = songs.indices.toList().shuffled()
             Log.i(
-                "Shuffling",
+                MUSIC_PLAYER_SERVICE_TAG,
                 "Shuffled list is: $shuffledSongs\n Songs list is ${songs.indices.toList()}"
             )
         } else {
             songPosition = currentSongPosition
         }
-        Log.i("Shuffle Alert!", "Shuffle is now set to $shuffle")
+        Log.i(MUSIC_PLAYER_SERVICE_TAG, "Shuffle is now set to $shuffle")
     }
 
     fun playSong() {
@@ -283,7 +285,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             player.setDataSource(trackResponse.songLink)
             player.prepare()
         } catch (e: Exception) {
-            Log.e("MusicPlayerService", "Error setting data source: $e")
+            Log.e(MUSIC_PLAYER_SERVICE_TAG, "Error setting data source: $e")
         }
     }
 
@@ -294,9 +296,11 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     private fun getSongStreamInfo(trackId: Long): TrackResponse {
-        Log.d("MusicPlayerService", "Getting song info for track=$trackId with token=$token")
+        Log.d(MUSIC_PLAYER_SERVICE_TAG, "Getting song info for track=$trackId with token=$token")
 
         val response = runBlocking { authenticatedGetRequest(URLs.TRACK + "$trackId", token) }
+
+        // FIXME do something when song stream info is not returned
 
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
     }
@@ -308,7 +312,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     ) {
         val trackId = songs[songPosition].track.id
         Log.d(
-            "MusicPlayerService",
+            MUSIC_PLAYER_SERVICE_TAG,
             "Marking track=$trackId as listened with:\nplayCountPosition=$playCountPosition\nplayerCurrentPosition=$playerCurrentPosition\nplayCountDuration=$playCountDuration"
         )
         launch {

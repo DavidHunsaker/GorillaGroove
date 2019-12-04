@@ -7,6 +7,11 @@
           android:orderInCategory="3"
           app:showAsAction="never"/>
 
+    <item android:id="@+id/action_reload_songs"
+            app:showAsAction="never"
+            android:title="@string/action_reload_songs"
+            />
+
     <item android:id="@+id/action_end"
             android:title="@string/end"
             android:icon="@drawable/end"

@@ -11,4 +11,5 @@
     <string name="login">Login</string>
     <string name="end">End</string>
     <string name="shuffle">Shuffle</string>
+    <string name="action_reload_songs">Reload Songs</string>
 </resources>

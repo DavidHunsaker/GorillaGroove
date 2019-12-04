@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Binder
@@ -91,7 +92,13 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private fun initMusicPlayer() {
         Log.i(MUSIC_PLAYER_SERVICE_TAG, "Initializing Media Player")
         player.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
-        player.setAudioStreamType(AudioManager.STREAM_MUSIC) // We are supported API 19, and thus need this deprecated method
+        player.setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                .setLegacyStreamType(AudioManager.STREAM_MUSIC)
+                .build()
+        )
         player.setOnPreparedListener(this)
         player.setOnCompletionListener(this)
         player.setOnErrorListener(this)
@@ -231,7 +238,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
     override fun onCompletion(mp: MediaPlayer?) {
         clearPlayCountInfo()
-        if (player.currentPosition > 0) mp!!.reset()
+//        if (player.currentPosition > 0) mp!!.reset()
         EventBus.getDefault().post(EndOfSongEvent("Resetting Music Player"))
     }
 
@@ -253,7 +260,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         stopForeground(true)
     }
 
-    fun setShuffle() {
+    fun setShuffle(): Boolean {
         shuffle = !shuffle
         if (shuffle) {
             shuffledSongs = songs.indices.toList().shuffled()
@@ -265,6 +272,8 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             songPosition = currentSongPosition
         }
         Log.i(MUSIC_PLAYER_SERVICE_TAG, "Shuffle is now set to $shuffle")
+
+        return shuffle
     }
 
     fun playSong() {
@@ -281,6 +290,8 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
         val trackResponse = getSongStreamInfo(song.track.id)
 
+//        player.reset()
+//        clearPlayCountInfo()
         try {
             player.setDataSource(trackResponse.songLink)
             player.prepare()
@@ -296,11 +307,17 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     private fun getSongStreamInfo(trackId: Long): TrackResponse {
+        var retryCount = 0
         Log.d(MUSIC_PLAYER_SERVICE_TAG, "Getting song info for track=$trackId with token=$token")
 
-        val response = runBlocking { authenticatedGetRequest(URLs.TRACK + "$trackId", token) }
+        var response = runBlocking { authenticatedGetRequest("${URLs.TRACK}$trackId", token) }
 
-        // FIXME do something when song stream info is not returned
+        while (response.length() == 0 && retryCount < 3) {
+            response = runBlocking { authenticatedGetRequest("${URLs.TRACK}$trackId", token) }
+            retryCount += 1
+        }
+
+        if (response.length() == 0) return TrackResponse("", null)
 
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
     }

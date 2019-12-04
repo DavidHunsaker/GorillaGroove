@@ -19,6 +19,7 @@ data class Track(
     val playCount: Long = 0,
     val hidden: Boolean = false,
     val lastPlayed: String? = "",
+    val updatedAt: String? = "",
     val createdAt: String? = "",
     val note: String? = ""
 )

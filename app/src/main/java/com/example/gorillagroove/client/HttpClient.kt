@@ -5,6 +5,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.IOException
@@ -20,7 +21,7 @@ fun loginRequest(url: String, email: String, password: String): JSONObject {
 
     val request = Request.Builder()
         .url(url)
-        .post(RequestBody.create("application/json".toMediaTypeOrNull(), body))
+        .post(body.toRequestBody("application/json".toMediaTypeOrNull()))
         .build()
 
     var responseVal = JSONObject()
@@ -72,7 +73,7 @@ fun markListenedRequest(url: String, trackId: Long, token: String) {
     val body = """{ "trackId": $trackId }""".trimIndent()
     val request = Request.Builder()
         .url(url)
-        .post(RequestBody.create("application/json".toMediaTypeOrNull(), body))
+        .post(body.toRequestBody("application/json".toMediaTypeOrNull()))
         .header("Authorization", "Bearer $token")
         .build()
 

@@ -13,6 +13,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.MediaController.MediaPlayerControl
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -46,7 +47,8 @@ import kotlin.system.exitProcess
 class PlaylistActivity : AppCompatActivity(),
     CoroutineScope by MainScope(), MediaPlayerControl, OnItemClickListener {
 
-    private val om = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+    private val om =
+        ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     private var musicBound = false
     private var token: String = ""
@@ -153,7 +155,8 @@ class PlaylistActivity : AppCompatActivity(),
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_shuffle -> {
-                musicPlayerService!!.setShuffle()
+                val message = if (musicPlayerService!!.setShuffle()) "Shuffle On" else "Shuffle Off"
+                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
             }
             R.id.action_end -> {
                 stopService(playIntent)

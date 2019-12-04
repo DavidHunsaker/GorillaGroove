@@ -73,11 +73,6 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         }
     }
 
-    override fun onTaskRemoved(rootIntent: Intent?) {
-        super.onTaskRemoved(rootIntent)
-        stopSelf()
-    }
-
     private fun userToken() {
         try {
             token = userRepository.findUser(email)!!.token!!
@@ -201,7 +196,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
                 .setTicker("$songTitle - $artist")
                 .setOngoing(true)
 
-            notificationManager.notify(NOTIFY_ID, notificationCompat.build())
+            startForeground(NOTIFY_ID, notificationCompat.build())
         } else {
 
             val builder = Notification.Builder(applicationContext)
@@ -228,8 +223,6 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
-        clearPlayCountInfo()
-        if (player.currentPosition > 0) mp!!.reset()
         EventBus.getDefault().post(EndOfSongEvent("Resetting Music Player"))
     }
 
@@ -251,7 +244,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         stopForeground(true)
     }
 
-    fun setShuffle() {
+    fun setShuffle(): Boolean {
         shuffle = !shuffle
         if (shuffle) {
             shuffledSongs = songs.indices.toList().shuffled()
@@ -263,6 +256,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             songPosition = currentSongPosition
         }
         Log.i("Shuffle Alert!", "Shuffle is now set to $shuffle")
+        return shuffle
     }
 
     fun playSong() {

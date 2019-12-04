@@ -29,6 +29,7 @@ import com.example.gorillagroove.dto.Track
 import com.example.gorillagroove.service.MusicPlayerService
 import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
 import com.example.gorillagroove.utils.URLs
+import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
@@ -45,7 +46,7 @@ import kotlin.system.exitProcess
 class PlaylistActivity : AppCompatActivity(),
     CoroutineScope by MainScope(), MediaPlayerControl, OnItemClickListener {
 
-    private val om = ObjectMapper()
+    private val om = ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     private var musicBound = false
     private var token: String = ""
@@ -118,7 +119,7 @@ class PlaylistActivity : AppCompatActivity(),
             playIntent = Intent(this@PlaylistActivity, MusicPlayerService::class.java)
                 .putExtra("email", email)
 
-            bindService(playIntent, musicConnection, Context.BIND_AUTO_CREATE)
+            bindService(playIntent, musicConnection, Context.BIND_IMPORTANT)
             startService(playIntent)
         }
         if (!EventBus.getDefault().isRegistered(this@PlaylistActivity)) {

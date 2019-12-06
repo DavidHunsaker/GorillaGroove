@@ -9,4 +9,5 @@ object URLs {
         "https://gorillagroove.net/api/track?sort=artist,asc&sort=album,asc&sort=trackNumber,asc&size=600&page=0"
     const val MARK_LISTENED = "https://gorillagroove.net/api/track/mark-listened"
     const val TRACK = "https://gorillagroove.net/api/file/link/"
+    const val USER = "https://gorillagroove.net/api/user"
 }

@@ -30,6 +30,7 @@ import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistDTO
 import com.example.gorillagroove.dto.PlaylistSongDTO
 import com.example.gorillagroove.dto.Track
+import com.example.gorillagroove.dto.Users
 import com.example.gorillagroove.service.MusicPlayerService
 import com.example.gorillagroove.service.MusicPlayerService.MusicBinder
 import com.example.gorillagroove.utils.URLs
@@ -62,6 +63,7 @@ class PlaylistActivity : AppCompatActivity(),
     private var userName: String = ""
     private var playbackPaused = false
     private var playIntent: Intent? = null
+    private var users: List<Users> = emptyList()
     private var playlists: List<PlaylistDTO> = emptyList()
     private var musicPlayerService: MusicPlayerService? = null
     private var activeSongsList: List<PlaylistSongDTO> = emptyList()
@@ -98,6 +100,7 @@ class PlaylistActivity : AppCompatActivity(),
         email = intent.getStringExtra("email")
 
         loadLibrarySongs()
+        requestUsers()
         requestPlaylists()
         setController()
 
@@ -126,6 +129,18 @@ class PlaylistActivity : AppCompatActivity(),
         val content: String = response.get("content").toString()
         activeSongsList = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         attachSongsListToAdapter()
+        musicPlayerService!!.setSongList(activeSongsList)
+    }
+
+    private fun loadUserLibraries(userId: Long) {
+        val response =
+            runBlocking { authenticatedGetRequest("${URLs.LIBRARY}&userId=$userId", token) }
+        val content: String = response.get("content").toString()
+        activeSongsList =
+            om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
+                .toList()
+        attachSongsListToAdapter()
+        musicPlayerService!!.setSongList(activeSongsList)
     }
 
     private fun attachSongsListToAdapter() {
@@ -135,6 +150,16 @@ class PlaylistActivity : AppCompatActivity(),
         val playlistAdapter = PlaylistAdapter(activeSongsList)
         recyclerView.adapter = playlistAdapter
         playlistAdapter.setClickListener(this)
+    }
+
+    private fun requestUsers() {
+        val response = runBlocking { playlistGetRequest(URLs.USER, token) }
+        if (response.length() > 0) {
+            users = om.readValue(response.toString(), arrayOf(Users())::class.java).toList()
+            val menu = nav_view.menu
+            val subMenu = menu.addSubMenu("User Libraries")
+            users.forEach { subMenu.add(2, it.id.toInt(), 0, it.username) }
+        }
     }
 
     private fun requestPlaylists() {
@@ -350,8 +375,13 @@ class PlaylistActivity : AppCompatActivity(),
             R.id.nav_library -> {
                 loadLibrarySongs()
             }
-            else -> {
+        }
+        when (item.groupId) {
+            1 -> {
                 loadPlaylistSongs(item.itemId.toLong())
+            }
+            2 -> {
+                loadUserLibraries(item.itemId.toLong())
             }
         }
         drawer_layout.closeDrawer(GravityCompat.START)

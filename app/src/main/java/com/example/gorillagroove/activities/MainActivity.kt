@@ -41,10 +41,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         runBlocking {
             withContext(Dispatchers.IO) {
                 val user = userRepository.lastLoggedInUser()
-                Log.i(
-                    MainActivityTag,
-                    "The user found when creating this fucking activity is $user"
-                )
+                Log.i(MainActivityTag, "Last logged in user=$user")
                 if (user != null) {
                     startActivity(createPlaylistIntent(user))
                 }

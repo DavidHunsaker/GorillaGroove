@@ -117,6 +117,7 @@ class PlaylistActivity : AppCompatActivity(),
                 .toList()
 
         attachSongsListToAdapter()
+        if(musicBound) musicPlayerService!!.setSongList(activeSongsList)
     }
 
     private fun loadPlaylistSongs(playlistId: Long) {
@@ -129,7 +130,7 @@ class PlaylistActivity : AppCompatActivity(),
         val content: String = response.get("content").toString()
         activeSongsList = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         attachSongsListToAdapter()
-        musicPlayerService!!.setSongList(activeSongsList)
+        if(musicBound) musicPlayerService!!.setSongList(activeSongsList)
     }
 
     private fun loadUserLibraries(userId: Long) {
@@ -140,7 +141,7 @@ class PlaylistActivity : AppCompatActivity(),
             om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
                 .toList()
         attachSongsListToAdapter()
-        musicPlayerService!!.setSongList(activeSongsList)
+        if(musicBound) musicPlayerService!!.setSongList(activeSongsList)
     }
 
     private fun attachSongsListToAdapter() {

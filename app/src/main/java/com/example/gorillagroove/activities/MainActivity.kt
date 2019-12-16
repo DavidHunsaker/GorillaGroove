@@ -22,6 +22,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
+import java.util.UUID
 
 private const val MainActivityTag = "MainActivity"
 
@@ -43,7 +44,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                 val user = userRepository.lastLoggedInUser()
                 Log.i(MainActivityTag, "Last logged in user=$user")
                 if (user != null) {
-                    startActivity(createPlaylistIntent(user))
+                    if (user.deviceId == null) {
+                        val deviceId = UUID.randomUUID().toString()
+                        userRepository.updateDeviceId(user.id, deviceId)
+                        val anotherOne = userRepository.lastLoggedInUser()
+                        if (anotherOne != null) startActivity(createPlaylistIntent(anotherOne))
+                    } else startActivity(createPlaylistIntent(user))
                 }
             }
         }
@@ -82,8 +88,15 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                         val innerUser: User? = userRepository.findUser(email)
 
                         if (innerUser != null) {
+                            if (innerUser.deviceId == null) {
+                                val deviceId = UUID.randomUUID().toString()
+                                userRepository.updateDeviceId(innerUser.id, deviceId)
+                            }
                             userRepository.updateToken(innerUser.id, token)
-                        } else userRepository.createUser(userName, email, token)
+                        } else {
+                            val deviceId = UUID.randomUUID().toString()
+                            userRepository.createUser(userName, email, token, deviceId)
+                        }
 
                         return@withContext userRepository.findUser(email)
                     }
@@ -110,6 +123,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         intent.putExtra("token", user.token)
         intent.putExtra("username", user.userName)
         intent.putExtra("email", user.email)
+        intent.putExtra("deviceId", user.deviceId)
         return intent
     }
 }

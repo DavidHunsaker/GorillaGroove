@@ -11,5 +11,6 @@ data class User(
     @ColumnInfo val userName: String,
     @ColumnInfo val email: String,
     @Nullable @ColumnInfo val token: String?,
-    @ColumnInfo val loggedIn: Int
+    @ColumnInfo val loggedIn: Int,
+    @ColumnInfo val deviceId: String?
 )

@@ -16,20 +16,32 @@ class UserRepository(private val userDao: UserDao) {
     }
 
     fun updateToken(userId: Long, token: String) {
-        Log.i(userRepositoryTag, "Updating token for userId: $userId" )
+        Log.i(userRepositoryTag, "Updating token for userId: $userId")
         userDao.updateToken(userId, token)
     }
 
-    fun createUser(userName: String, email: String, token: String?) {
+    fun updateDeviceId(userId: Long, deviceId: String) {
+        Log.i(userRepositoryTag, "Updating deviceId for userId: $userId")
+        userDao.updateDeviceId(userId, deviceId)
+    }
+
+    fun createUser(userName: String, email: String, token: String?, deviceId: String?) {
         Log.i(userRepositoryTag, "Creating user with username: $userName and email: $email")
-        val user = User(id  = 0, userName = userName, email = email, token =  token, loggedIn = 1)
+        val user = User(
+            id = 0,
+            userName = userName,
+            email = email,
+            token = token,
+            loggedIn = 1,
+            deviceId = deviceId
+        )
         userDao.createUser(user)
     }
 
     fun lastLoggedInUser(): User? {
         Log.i(userRepositoryTag, "Fetching the user that last logged in")
         val user = userDao.findLastLoggedIn()
-        if(user != null) {
+        if (user != null) {
             Log.i(userRepositoryTag, "The last logged in user was: $user")
         }
         return user

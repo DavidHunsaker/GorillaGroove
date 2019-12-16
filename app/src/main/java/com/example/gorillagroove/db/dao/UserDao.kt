@@ -14,6 +14,9 @@ interface UserDao {
     @Query(value = "UPDATE User SET token = :token, loggedIn = 1 WHERE id = :userId")
     fun updateToken(userId: Long, token: String)
 
+    @Query(value = "UPDATE User SET deviceId = :deviceId WHERE id = :userId")
+    fun updateDeviceId(userId: Long, deviceId: String)
+
     @Insert
     fun createUser(user: User)
 

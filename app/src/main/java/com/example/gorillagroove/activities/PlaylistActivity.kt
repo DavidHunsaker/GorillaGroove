@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.IBinder
 import android.util.Log
@@ -79,6 +80,7 @@ class PlaylistActivity : AppCompatActivity(),
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_playlist)
         setSupportActionBar(toolbar)
+        volumeControlStream = AudioManager.STREAM_MUSIC
 
         repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
 
@@ -275,6 +277,12 @@ class PlaylistActivity : AppCompatActivity(),
         controller.show(0)
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onAudioFocusLosses(event: MediaPlayerAudioLossEvent) {
+        Log.i("EventBus", "MessageReceived $(event.message}")
+        pause()
+    }
+
     private fun setController() {
         controller = MusicController(this@PlaylistActivity)
         controller.setPrevNextListeners({ playNext() }, { playPrevious() })
@@ -337,7 +345,7 @@ class PlaylistActivity : AppCompatActivity(),
     }
 
     override fun start() {
-        musicPlayerService!!.start()
+        musicPlayerService!!.requestAudioFocus()
     }
 
     override fun canPause(): Boolean {
@@ -399,5 +407,9 @@ class EndOfSongEvent(message: String) {
 }
 
 class MediaPlayerLoadedEvent(message: String) {
+    val message = message
+}
+
+class MediaPlayerAudioLossEvent(message: String) {
     val message = message
 }

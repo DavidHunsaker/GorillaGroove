@@ -5,17 +5,22 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
+import android.provider.MediaStore
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.gorillagroove.R
 import com.example.gorillagroove.activities.EndOfSongEvent
+import com.example.gorillagroove.activities.MediaPlayerAudioLossEvent
 import com.example.gorillagroove.activities.MediaPlayerLoadedEvent
 import com.example.gorillagroove.activities.PlaylistActivity
 import com.example.gorillagroove.client.authenticatedGetRequest
@@ -35,10 +40,12 @@ import org.greenrobot.eventbus.EventBus
 
 class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     MediaPlayer.OnErrorListener,
-    MediaPlayer.OnCompletionListener, CoroutineScope by MainScope() {
+    MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener,
+    CoroutineScope by MainScope() {
     private val NOTIFY_ID = 1
     private val player = MediaPlayer()
     private val musicBind: IBinder = MusicBinder()
+
 
     private var token = ""
     private var email = ""
@@ -46,6 +53,8 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private var songTitle = ""
     private var artist = ""
     private var shuffle = false
+    private var hasAudioFocus = false
+    private var playbackDelayed = false
     private var songPosition = 0
     private var lastRecordedTime = 0
     private var playCountPosition = 0
@@ -56,11 +65,22 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
     private lateinit var userRepository: UserRepository
     private lateinit var songs: List<PlaylistSongDTO>
+    private lateinit var audioManager: AudioManager
+    private val mFocusLock = Object()
 
     override fun onCreate() {
         Log.i("MSP", "onCreate is called")
         super.onCreate()
         songPosition = 0
+        /* val streamMaxVolume = audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) as Int
+        val streamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) as Int
+        audioManager.setStreamVolume(
+            AudioManager.STREAM_MUSIC,
+            min(streamVolume + 1, streamMaxVolume),
+            0
+        )
+        */
+        audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         initMusicPlayer()
 
         userRepository =
@@ -77,7 +97,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private fun userInformation() {
         try {
             val user = userRepository.lastLoggedInUser()
-            if(user != null){
+            if (user != null) {
                 token = user.token!!
                 deviceId = user.deviceId!!
                 email = user.email
@@ -138,6 +158,40 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         lastRecordedTime = System.currentTimeMillis().toInt()
     }
 
+    fun requestAudioFocus() {
+        val requestAudioFocus: Int = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val mPlaybackAttributes = AudioAttributes.Builder()
+                .setLegacyStreamType(AudioManager.STREAM_MUSIC)
+                .setUsage(AudioAttributes.USAGE_MEDIA)
+                .build()
+            val audioFocusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN)
+                .setAudioAttributes(mPlaybackAttributes)
+                .setOnAudioFocusChangeListener(this).build()
+            audioManager.requestAudioFocus(audioFocusRequest)
+        } else {
+            audioManager.requestAudioFocus(
+                this,
+                AudioManager.STREAM_MUSIC,
+                AudioManager.AUDIOFOCUS_GAIN
+            )
+        }
+        synchronized(mFocusLock) {
+            when (requestAudioFocus) {
+                AudioManager.AUDIOFOCUS_REQUEST_FAILED -> {
+                    playbackDelayed = false
+                }
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
+                    playbackDelayed = false
+                    start()
+                    EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
+                }
+                AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
+                    playbackDelayed = true
+                }
+            }
+        }
+    }
+
     fun seek(position: Int) {
         player.seekTo(position)
         lastRecordedTime = System.currentTimeMillis().toInt()
@@ -174,8 +228,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     override fun onPrepared(mp: MediaPlayer) {
-        mp.start()
-        lastRecordedTime = System.currentTimeMillis().toInt()
+        requestAudioFocus()
         val notIntent = Intent(applicationContext, PlaylistActivity::class.java)
         notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pendingIntent = PendingIntent.getActivity(
@@ -321,6 +374,27 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
                     token,
                     deviceId
                 )
+            }
+        }
+    }
+
+    override fun onAudioFocusChange(focusChange: Int) {
+        when (focusChange) {
+            AudioManager.AUDIOFOCUS_GAIN, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
+                Log.d("MusicPlayerService", "Audio Focus Gained")
+                hasAudioFocus = true
+                player.start()
+                EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
+            }
+            AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
+                Log.d("MusicPlayerService", "Audio Focus Loss Transient")
+                hasAudioFocus = false
+                EventBus.getDefault().post(MediaPlayerAudioLossEvent("TransientAudiofocus Loss, Pausing Playback"))
+            }
+            AudioManager.AUDIOFOCUS_LOSS -> {
+                Log.d("MusicPlayerService", "AudioFocusLoss")
+                hasAudioFocus = false
+                EventBus.getDefault().post(MediaPlayerAudioLossEvent("Audiofocus Loss, Pausing Playback"))
             }
         }
     }

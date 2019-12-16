@@ -61,6 +61,7 @@ class PlaylistActivity : AppCompatActivity(),
     private var token: String = ""
     private var email: String = ""
     private var userName: String = ""
+    private var deviceId: String = ""
     private var playbackPaused = false
     private var playIntent: Intent? = null
     private var users: List<Users> = emptyList()
@@ -98,6 +99,7 @@ class PlaylistActivity : AppCompatActivity(),
         token = intent.getStringExtra("token")
         userName = intent.getStringExtra("username")
         email = intent.getStringExtra("email")
+        deviceId = intent.getStringExtra("deviceId")
 
         loadLibrarySongs()
         requestUsers()
@@ -117,20 +119,20 @@ class PlaylistActivity : AppCompatActivity(),
                 .toList()
 
         attachSongsListToAdapter()
-        if(musicBound) musicPlayerService!!.setSongList(activeSongsList)
+        if (musicBound) musicPlayerService!!.setSongList(activeSongsList)
     }
 
     private fun loadPlaylistSongs(playlistId: Long) {
         val response = runBlocking {
             authenticatedGetRequest(
-                "${URLs.PLAYLIST_TEMPLATE}playlistId=$playlistId&size=200",
+                "${URLs.PLAYLIST_BASE}playlistId=$playlistId&size=200",
                 token
             )
         }
         val content: String = response.get("content").toString()
         activeSongsList = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         attachSongsListToAdapter()
-        if(musicBound) musicPlayerService!!.setSongList(activeSongsList)
+        if (musicBound) musicPlayerService!!.setSongList(activeSongsList)
     }
 
     private fun loadUserLibraries(userId: Long) {
@@ -141,7 +143,7 @@ class PlaylistActivity : AppCompatActivity(),
             om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
                 .toList()
         attachSongsListToAdapter()
-        if(musicBound) musicPlayerService!!.setSongList(activeSongsList)
+        if (musicBound) musicPlayerService!!.setSongList(activeSongsList)
     }
 
     private fun attachSongsListToAdapter() {
@@ -197,6 +199,8 @@ class PlaylistActivity : AppCompatActivity(),
         if (playIntent == null) {
             playIntent = Intent(this@PlaylistActivity, MusicPlayerService::class.java)
                 .putExtra("email", email)
+                .putExtra("token", token)
+                .putExtra("deviceId", deviceId)
 
             bindService(playIntent, musicConnection, Context.BIND_IMPORTANT)
             startService(playIntent)

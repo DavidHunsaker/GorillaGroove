@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.GravityCompat
 import com.example.gorillagroove.R
 import com.example.gorillagroove.client.loginRequest
+import com.example.gorillagroove.client.updateDevice
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.model.User
 import com.example.gorillagroove.db.repository.UserRepository
@@ -47,9 +48,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                     if (user.deviceId == null) {
                         val deviceId = UUID.randomUUID().toString()
                         userRepository.updateDeviceId(user.id, deviceId)
+
                         val anotherOne = userRepository.lastLoggedInUser()
                         if (anotherOne != null) startActivity(createPlaylistIntent(anotherOne))
-                    } else startActivity(createPlaylistIntent(user))
+                    } else {
+                        startActivity(createPlaylistIntent(user))
+                    }
                 }
             }
         }
@@ -119,6 +123,8 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
     }
 
     private fun createPlaylistIntent(user: User): Intent {
+        runBlocking { updateDevice(URLs.DEVICE, user.token!!, user.deviceId!!) }
+
         val intent = Intent(applicationContext, PlaylistActivity::class.java)
         intent.putExtra("token", user.token)
         intent.putExtra("username", user.userName)

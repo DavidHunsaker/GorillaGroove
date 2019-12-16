@@ -42,6 +42,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
     private var token = ""
     private var email = ""
+    private var deviceId = ""
     private var songTitle = ""
     private var artist = ""
     private var shuffle = false
@@ -64,18 +65,23 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
         userRepository =
             UserRepository(GroovinDB.getDatabase(this@MusicPlayerService).userRepository())
-        if (token.isBlank()) {
+        if (token.isBlank() || deviceId.isBlank() || email.isBlank()) {
             launch {
                 withContext(Dispatchers.IO) {
-                    userToken()
+                    userInformation()
                 }
             }
         }
     }
 
-    private fun userToken() {
+    private fun userInformation() {
         try {
-            token = userRepository.findUser(email)!!.token!!
+            val user = userRepository.lastLoggedInUser()
+            if(user != null){
+                token = user.token!!
+                deviceId = user.deviceId!!
+                email = user.email
+            }
         } catch (e: Exception) {
             Log.e("MusicPlayerService", "User not found!: $e")
         }
@@ -108,7 +114,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         lastRecordedTime = currentTime
         playCountPosition += elapsedPosition // Milliseconds
         if (!markedListened && playCountDuration > 0 && playCountPosition >= playCountDuration) {
-            markListened(playCountPosition, player.currentPosition, playCountDuration)
+            markListened(playCountPosition, player.currentPosition, playCountDuration, deviceId)
             markedListened = true
         }
         return player.currentPosition
@@ -230,6 +236,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         if (intent != null) {
             if (intent.hasExtra("email")) email = intent.getStringExtra("email")
             if (intent.hasExtra("token")) token = intent.getStringExtra("token")
+            if (intent.hasExtra("deviceId")) deviceId = intent.getStringExtra("deviceId")
         }
         return musicBind
     }
@@ -298,7 +305,8 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private fun markListened(
         playCountPosition: Int,
         playerCurrentPosition: Int,
-        playCountDuration: Int
+        playCountDuration: Int,
+        deviceId: String
     ) {
         val trackId = songs[songPosition].track.id
         Log.d(
@@ -310,7 +318,8 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
                 markListenedRequest(
                     URLs.MARK_LISTENED,
                     trackId,
-                    token
+                    token,
+                    deviceId
                 )
             }
         }

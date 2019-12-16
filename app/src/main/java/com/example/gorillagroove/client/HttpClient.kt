@@ -11,6 +11,7 @@ import java.io.IOException
 import kotlin.concurrent.thread
 
 private val client = OkHttpClient()
+private const val VERSION = "1.1"
 
 fun loginRequest(url: String, email: String, password: String): JSONObject {
     val body = """{ "email": "$email", "password": "$password" }""".trimIndent()
@@ -73,8 +74,24 @@ fun playlistGetRequest(url: String, token: String): JSONArray {
     return responseVal
 }
 
-fun markListenedRequest(url: String, trackId: Long, token: String) {
-    val body = """{ "trackId": $trackId, "deviceType":"ANDROID" }""".trimIndent()
+fun updateDevice(url: String, token: String, deviceId: String) {
+    val body = """{
+        |"deviceId": "$deviceId",
+        |"version":"$VERSION",
+        |"deviceType":"ANDROID"
+        |}
+    """.trimMargin()
+    val request = Request.Builder()
+        .url(url)
+        .put(RequestBody.create("application/json".toMediaTypeOrNull(), body))
+        .header("Authorization", "Bearer $token")
+        .build()
+
+    thread { client.newCall(request).execute() }.join()
+}
+
+fun markListenedRequest(url: String, trackId: Long, token: String, deviceId: String) {
+    val body = """{ "trackId": $trackId, "deviceId": "$deviceId" }""".trimIndent()
     val request = Request.Builder()
         .url(url)
         .post(RequestBody.create("application/json".toMediaTypeOrNull(), body))

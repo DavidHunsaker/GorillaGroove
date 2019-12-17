@@ -38,7 +38,7 @@ import com.example.gorillagroove.utils.URLs
 import com.fasterxml.jackson.databind.DeserializationFeature
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.google.android.material.navigation.NavigationView
-import kotlinx.android.synthetic.main.activity_main.drawer_layout
+import kotlinx.android.synthetic.main.activity_playlist.drawer_layout
 import kotlinx.android.synthetic.main.activity_playlist.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
 import kotlinx.coroutines.CoroutineScope
@@ -84,7 +84,7 @@ class PlaylistActivity : AppCompatActivity(),
 
         repository = UserRepository(GroovinDB.getDatabase(this@PlaylistActivity).userRepository())
 
-        if (EventBus.getDefault().isRegistered(this@PlaylistActivity)) {
+        if (!EventBus.getDefault().isRegistered(this@PlaylistActivity)) {
             EventBus.getDefault().register(this@PlaylistActivity)
         }
 
@@ -109,6 +109,14 @@ class PlaylistActivity : AppCompatActivity(),
         setController()
 
         nav_view.setNavigationItemSelectedListener(this@PlaylistActivity)
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (controller.height > 0) {
+            nav_view.setPadding(0, 0, 0, controller.height)
+            recyclerView.setPadding(0, 0, 0, controller.height)
+        }
     }
 
     private fun loadLibrarySongs() {
@@ -287,7 +295,7 @@ class PlaylistActivity : AppCompatActivity(),
         controller = MusicController(this@PlaylistActivity)
         controller.setPrevNextListeners({ playNext() }, { playPrevious() })
         controller.setMediaPlayer(this)
-        controller.setAnchorView(findViewById(R.id.rv_playlist))
+        controller.setAnchorView(findViewById(R.id.frame_layout))
         controller.isEnabled = true
         playbackPaused = false
     }

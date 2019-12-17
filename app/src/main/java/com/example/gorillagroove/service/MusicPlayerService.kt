@@ -15,12 +15,12 @@ import android.os.Binder
 import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
-import android.provider.MediaStore
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.gorillagroove.R
 import com.example.gorillagroove.activities.EndOfSongEvent
 import com.example.gorillagroove.activities.MediaPlayerAudioLossEvent
+import com.example.gorillagroove.activities.MediaPlayerTransientAudioLossEvent
 import com.example.gorillagroove.activities.MediaPlayerLoadedEvent
 import com.example.gorillagroove.activities.PlaylistActivity
 import com.example.gorillagroove.client.authenticatedGetRequest
@@ -54,6 +54,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private var artist = ""
     private var shuffle = false
     private var hasAudioFocus = false
+    private var paused = false
     private var playbackDelayed = false
     private var songPosition = 0
     private var lastRecordedTime = 0
@@ -383,18 +384,20 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             AudioManager.AUDIOFOCUS_GAIN, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
                 Log.d("MusicPlayerService", "Audio Focus Gained")
                 hasAudioFocus = true
-                player.start()
+                if(!paused) player.start()
                 EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                 Log.d("MusicPlayerService", "Audio Focus Loss Transient")
                 hasAudioFocus = false
-                EventBus.getDefault().post(MediaPlayerAudioLossEvent("TransientAudiofocus Loss, Pausing Playback"))
+                paused = true
+                EventBus.getDefault().post(MediaPlayerTransientAudioLossEvent("Transient Audiofocus Loss, Pausing Playback"))
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
                 Log.d("MusicPlayerService", "AudioFocusLoss")
                 hasAudioFocus = false
-                EventBus.getDefault().post(MediaPlayerAudioLossEvent("Audiofocus Loss, Pausing Playback"))
+                paused = true
+                EventBus.getDefault().post(MediaPlayerAudioLossEvent("Audiofocus Loss, Stopping Playback"))
             }
         }
     }

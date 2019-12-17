@@ -286,9 +286,15 @@ class PlaylistActivity : AppCompatActivity(),
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
-    fun onAudioFocusLosses(event: MediaPlayerAudioLossEvent) {
-        Log.i("EventBus", "MessageReceived $(event.message}")
+    fun onAudioFocusLosses(event: MediaPlayerTransientAudioLossEvent) {
+        Log.i("EventBus", "MessageReceived ${event.message}")
         pause()
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onAudioFocusLoss(event: MediaPlayerAudioLossEvent) {
+        Log.i("EventBus", "MessageReceived ${event.message}")
+        stopService(playIntent)
     }
 
     private fun setController() {
@@ -415,6 +421,10 @@ class EndOfSongEvent(message: String) {
 }
 
 class MediaPlayerLoadedEvent(message: String) {
+    val message = message
+}
+
+class MediaPlayerTransientAudioLossEvent(message: String) {
     val message = message
 }
 

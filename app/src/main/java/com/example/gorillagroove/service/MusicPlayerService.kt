@@ -16,12 +16,16 @@ import android.os.Build
 import android.os.IBinder
 import android.os.PowerManager
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.core.app.NotificationCompat
 import com.example.gorillagroove.R
-import com.example.gorillagroove.activities.EndOfSongEvent
 import com.example.gorillagroove.activities.MediaPlayerAudioLossEvent
-import com.example.gorillagroove.activities.MediaPlayerTransientAudioLossEvent
 import com.example.gorillagroove.activities.MediaPlayerLoadedEvent
+import com.example.gorillagroove.activities.MediaPlayerPauseEvent
+import com.example.gorillagroove.activities.MediaPlayerStartSongEvent
+import com.example.gorillagroove.activities.MediaPlayerTransientAudioLossEvent
+import com.example.gorillagroove.activities.PlayNextSongEvent
+import com.example.gorillagroove.activities.PlayPreviousSongEvent
 import com.example.gorillagroove.activities.PlaylistActivity
 import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.client.markListenedRequest
@@ -38,14 +42,27 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
 
-class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
-    MediaPlayer.OnErrorListener,
+@RequiresApi(Build.VERSION_CODES.N)
+private const val IMPORTANCE = NotificationManager.IMPORTANCE_LOW
+
+private const val NOTIFICATION_CHANNEL_ID = "channel_id"
+private const val CHANNEL_NAME = "Notification Channel"
+private const val ACTION_PLAY = "com.example.gorillagroove.ACTION_PLAY"
+private const val ACTION_PAUSE = "com.example.gorillagroove.ACTION_PAUSE"
+private const val ACTION_NEXT = "com.example.gorillagroove.ACTION_NEXT"
+private const val ACTION_PREVIOUS = "com.example.gorillagroove.ACTION_PREVIOUS"
+
+private const val NOTIFY_ID = 1
+private const val REQUEST_CODE_PLAY = 900
+private const val REQUEST_CODE_PAUSE = 910
+private const val REQUEST_CODE_NEXT = 920
+private const val REQUEST_CODE_PREVIOUS = 930
+
+class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlayer.OnErrorListener,
     MediaPlayer.OnCompletionListener, AudioManager.OnAudioFocusChangeListener,
     CoroutineScope by MainScope() {
-    private val NOTIFY_ID = 1
     private val player = MediaPlayer()
     private val musicBind: IBinder = MusicBinder()
-
 
     private var token = ""
     private var email = ""
@@ -73,14 +90,6 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         Log.i("MSP", "onCreate is called")
         super.onCreate()
         songPosition = 0
-        /* val streamMaxVolume = audioManager?.getStreamMaxVolume(AudioManager.STREAM_MUSIC) as Int
-        val streamVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC) as Int
-        audioManager.setStreamVolume(
-            AudioManager.STREAM_MUSIC,
-            min(streamVolume + 1, streamMaxVolume),
-            0
-        )
-        */
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
         initMusicPlayer()
 
@@ -111,7 +120,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     private fun initMusicPlayer() {
         Log.i("MSP", "Initializing Media Player")
         player.setWakeMode(applicationContext, PowerManager.PARTIAL_WAKE_LOCK)
-        player.setAudioStreamType(AudioManager.STREAM_MUSIC) // We are supported API 19, and thus need this deprecated method
+        player.setAudioStreamType(AudioManager.STREAM_MUSIC) // We are supporting API 19, and thus need this deprecated method
         player.setOnPreparedListener(this)
         player.setOnCompletionListener(this)
         player.setOnErrorListener(this)
@@ -184,7 +193,8 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
                 AudioManager.AUDIOFOCUS_REQUEST_GRANTED -> {
                     playbackDelayed = false
                     start()
-                    EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
+                    EventBus.getDefault()
+                        .post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
                 }
                 AudioManager.AUDIOFOCUS_REQUEST_DELAYED -> {
                     playbackDelayed = true
@@ -228,28 +238,81 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
         }
     }
 
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        if (intent != null) {
+            val action = intent.action
+            if (!action.isNullOrBlank()) {
+                when (action) {
+                    ACTION_PLAY -> EventBus.getDefault().post(MediaPlayerStartSongEvent("Resuming Play"))
+                    ACTION_PAUSE -> EventBus.getDefault().post(MediaPlayerPauseEvent("Pausing Media"))
+                    ACTION_NEXT -> EventBus.getDefault().post(PlayNextSongEvent("Playing Next Song"))
+                    ACTION_PREVIOUS -> EventBus.getDefault().post(PlayPreviousSongEvent("Playing Previous Song"))
+                }
+            }
+        }
+        return super.onStartCommand(intent, flags, startId)
+    }
+
     override fun onPrepared(mp: MediaPlayer) {
         requestAudioFocus()
-        val notIntent = Intent(applicationContext, PlaylistActivity::class.java)
-        notIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+
+        val notificationIntent = Intent(
+            applicationContext,
+            PlaylistActivity::class.java
+        ).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
         val pendingIntent = PendingIntent.getActivity(
             applicationContext,
             0,
-            notIntent,
+            notificationIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val playSongIntent = Intent(ACTION_PLAY)
+        val pendingPlaySongIntent = PendingIntent.getService(
+            applicationContext,
+            REQUEST_CODE_PLAY,
+            playSongIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val pauseSongIntent = Intent(ACTION_PAUSE)
+        val pendingPauseSongIntent = PendingIntent.getService(
+            applicationContext,
+            REQUEST_CODE_PAUSE,
+            pauseSongIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+
+        val nextSongIntent = Intent(ACTION_NEXT)
+        val pendingNextSongIntent = PendingIntent.getService(
+            applicationContext,
+            REQUEST_CODE_NEXT,
+            nextSongIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val previousSongIntent = Intent(ACTION_PREVIOUS)
+        val pendingPreviousSongIntent = PendingIntent.getService(
+            applicationContext,
+            REQUEST_CODE_PREVIOUS,
+            previousSongIntent,
             PendingIntent.FLAG_UPDATE_CURRENT
         )
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val NOTIFICATION_CHANNEL_ID = "channel_id"
-            val CHANNEL_NAME = "Notification Channel"
-            val importance = NotificationManager.IMPORTANCE_LOW
             val notificationChannel =
-                NotificationChannel(NOTIFICATION_CHANNEL_ID, CHANNEL_NAME, importance)
+                NotificationChannel(NOTIFICATION_CHANNEL_ID, CHANNEL_NAME, IMPORTANCE)
             notificationChannel.lockscreenVisibility = Notification.VISIBILITY_PRIVATE
             val notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(notificationChannel)
 
             val notificationCompat = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
+                .setContentIntent(pendingIntent)
+                .addAction(R.drawable.pause_song_small, "pause", pendingPauseSongIntent)
+                .addAction(R.drawable.play_song_small, "play", pendingPlaySongIntent)
+                .addAction(R.drawable.next_song_small, "next", pendingNextSongIntent)
+                .addAction(R.drawable.previous_song_small, "previous", pendingPreviousSongIntent)
                 .setContentTitle("Gorilla Groove")
                 .setContentText("$songTitle - $artist")
                 .setSmallIcon(R.drawable.logo)
@@ -258,20 +321,18 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
 
             startForeground(NOTIFY_ID, notificationCompat.build())
         } else {
-
-            val builder = Notification.Builder(applicationContext)
-
-            builder.setContentIntent(pendingIntent)
+            val notificationCompat = Notification.Builder(applicationContext)
+                .setContentIntent(pendingIntent)
+                .addAction(R.drawable.pause_song_small, "pause", pendingPauseSongIntent)
+                .addAction(R.drawable.play_song_small, "play", pendingPlaySongIntent)
+                .addAction(R.drawable.next_song_small, "next", pendingNextSongIntent)
+                .setContentTitle("Gorilla Groove")
+                .setContentText("$songTitle - $artist")
                 .setSmallIcon(R.drawable.logo)
                 .setTicker("$songTitle - $artist")
                 .setOngoing(true)
-                .setContentTitle("Gorilla Groove")
-                .setContentText("$songTitle - $artist")
 
-
-            val not = builder.build()
-
-            startForeground(NOTIFY_ID, not)
+            startForeground(NOTIFY_ID, notificationCompat.build())
         }
         EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
     }
@@ -283,7 +344,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
-        EventBus.getDefault().post(EndOfSongEvent("Resetting Music Player"))
+        EventBus.getDefault().post(PlayNextSongEvent("Resetting Music Player"))
     }
 
     override fun onBind(intent: Intent?): IBinder? {
@@ -384,20 +445,23 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener,
             AudioManager.AUDIOFOCUS_GAIN, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
                 Log.d("MusicPlayerService", "Audio Focus Gained")
                 hasAudioFocus = true
-                if(!paused) player.start()
-                EventBus.getDefault().post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
+                if (!paused) player.start()
+                EventBus.getDefault()
+                    .post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                 Log.d("MusicPlayerService", "Audio Focus Loss Transient")
                 hasAudioFocus = false
                 paused = true
-                EventBus.getDefault().post(MediaPlayerTransientAudioLossEvent("Transient Audiofocus Loss, Pausing Playback"))
+                EventBus.getDefault()
+                    .post(MediaPlayerTransientAudioLossEvent("Transient Audiofocus Loss, Pausing Playback"))
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
                 Log.d("MusicPlayerService", "AudioFocusLoss")
                 hasAudioFocus = false
                 paused = true
-                EventBus.getDefault().post(MediaPlayerAudioLossEvent("Audiofocus Loss, Stopping Playback"))
+                EventBus.getDefault()
+                    .post(MediaPlayerAudioLossEvent("Audiofocus Loss, Stopping Playback"))
             }
         }
     }

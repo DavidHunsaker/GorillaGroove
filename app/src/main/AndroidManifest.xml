@@ -35,7 +35,24 @@
                 android:launchMode="singleTop"
                 />
 
-        <service android:name="com.example.gorillagroove.service.MusicPlayerService" />
+        <service
+                android:name="com.example.gorillagroove.service.MusicPlayerService" >
+            <intent-filter>
+                <action android:name="androidx.media.browse.MediaBrowserService" />
+                <action android:name="com.example.gorillagroove.ACTION_PLAY" />
+                <action android:name="com.example.gorillagroove.ACTION_PAUSE" />
+                <action android:name="com.example.gorillagroove.ACTION_NEXT" />
+                <action android:name="com.example.gorillagroove.ACTION_PREVIOUS" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+        </service>
+
+        <receiver android:name="androidx.media.session.MediaButtonReceiver">
+            <intent-filter>
+                <action android:name="android.intent.action.MEDIA_BUTTON"/>
+            </intent-filter>
+        </receiver>
+
     </application>
 
 

@@ -274,7 +274,7 @@ class PlaylistActivity : AppCompatActivity(),
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
-    fun onEndOfSongEvent(event: EndOfSongEvent) {
+    fun playNextEvent(event: PlayNextSongEvent) {
         Log.i("EventBus", "Message received ${event.message}")
         playNext()
     }
@@ -289,12 +289,32 @@ class PlaylistActivity : AppCompatActivity(),
     fun onAudioFocusLosses(event: MediaPlayerTransientAudioLossEvent) {
         Log.i("EventBus", "MessageReceived ${event.message}")
         pause()
+        controller.show(0)
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onPauseEvent(event: MediaPlayerPauseEvent) {
+        Log.i("EventBus", "MessageReceived ${event.message}")
+        pause()
+        controller.show(0)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
     fun onAudioFocusLoss(event: MediaPlayerAudioLossEvent) {
         Log.i("EventBus", "MessageReceived ${event.message}")
         stopService(playIntent)
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onStartSongEvent(event: MediaPlayerStartSongEvent) {
+        Log.i("EventBus", "MessageReceived ${event.message}")
+        start()
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
+    fun onPlayPreviousSongEvent(event: PlayPreviousSongEvent) {
+        Log.i("EventBus", "MessageReceived ${event.message}")
+        playPrevious()
     }
 
     private fun setController() {
@@ -416,7 +436,7 @@ class PlaylistActivity : AppCompatActivity(),
     }
 }
 
-class EndOfSongEvent(message: String) {
+class PlayNextSongEvent(message: String) {
     val message = message
 }
 
@@ -429,5 +449,17 @@ class MediaPlayerTransientAudioLossEvent(message: String) {
 }
 
 class MediaPlayerAudioLossEvent(message: String) {
+    val message = message
+}
+
+class MediaPlayerPauseEvent(message: String) {
+    val message = message
+}
+
+class MediaPlayerStartSongEvent(message: String) {
+    val message = message
+}
+
+class PlayPreviousSongEvent(message: String) {
     val message = message
 }

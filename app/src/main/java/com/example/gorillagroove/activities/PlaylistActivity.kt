@@ -115,7 +115,7 @@ class PlaylistActivity : AppCompatActivity(),
         super.onWindowFocusChanged(hasFocus)
         if (controller.height > 0) {
             nav_view.setPadding(0, 0, 0, controller.height)
-            recyclerView.setPadding(0, 0, 0, controller.height)
+            recyclerView.setPadding(0, toolbar.height, 0, controller.height)
         }
     }
 

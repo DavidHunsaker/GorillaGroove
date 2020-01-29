@@ -37,10 +37,11 @@ import com.example.gorillagroove.utils.URLs
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import org.greenrobot.eventbus.EventBus
+import org.json.JSONObject
 
 @RequiresApi(Build.VERSION_CODES.N)
 private const val IMPORTANCE = NotificationManager.IMPORTANCE_LOW
@@ -412,7 +413,7 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
     private fun getSongStreamInfo(trackId: Long): TrackResponse {
         Log.d("MusicPlayerService", "Getting song info for track=$trackId with token=$token")
 
-        val response = runBlocking { authenticatedGetRequest(URLs.TRACK + "$trackId", token) }
+        val response = authenticatedGetRequest(URLs.TRACK + "$trackId", token)
 
         return TrackResponse(response["songLink"].toString(), response["albumArtLink"].toString())
     }

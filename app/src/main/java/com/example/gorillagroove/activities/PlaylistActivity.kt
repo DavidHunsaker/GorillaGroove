@@ -120,7 +120,7 @@ class PlaylistActivity : AppCompatActivity(),
     }
 
     private fun loadLibrarySongs() {
-        val response = runBlocking { authenticatedGetRequest(URLs.LIBRARY, token) }
+        val response = authenticatedGetRequest(URLs.LIBRARY, token)
 
         val content: String = response.get("content").toString()
 
@@ -133,12 +133,9 @@ class PlaylistActivity : AppCompatActivity(),
     }
 
     private fun loadPlaylistSongs(playlistId: Long) {
-        val response = runBlocking {
-            authenticatedGetRequest(
-                "${URLs.PLAYLIST_BASE}playlistId=$playlistId&size=200",
-                token
-            )
-        }
+        val response =
+            authenticatedGetRequest("${URLs.PLAYLIST_BASE}playlistId=$playlistId&size=200", token)
+
         val content: String = response.get("content").toString()
         activeSongsList = om.readValue(content, arrayOf(PlaylistSongDTO())::class.java).toList()
         attachSongsListToAdapter()
@@ -147,7 +144,7 @@ class PlaylistActivity : AppCompatActivity(),
 
     private fun loadUserLibraries(userId: Long) {
         val response =
-            runBlocking { authenticatedGetRequest("${URLs.LIBRARY}&userId=$userId", token) }
+            authenticatedGetRequest("${URLs.LIBRARY}&userId=$userId", token)
         val content: String = response.get("content").toString()
         activeSongsList =
             om.readValue(content, arrayOf(Track())::class.java).map { PlaylistSongDTO(0, it) }
@@ -166,7 +163,7 @@ class PlaylistActivity : AppCompatActivity(),
     }
 
     private fun requestUsers() {
-        val response = runBlocking { playlistGetRequest(URLs.USER, token) }
+        val response = playlistGetRequest(URLs.USER, token)
         if (response.length() > 0) {
             users = om.readValue(response.toString(), arrayOf(Users())::class.java).toList()
             val menu = nav_view.menu
@@ -176,7 +173,7 @@ class PlaylistActivity : AppCompatActivity(),
     }
 
     private fun requestPlaylists() {
-        val response = runBlocking { playlistGetRequest(URLs.PLAYLISTS, token) }
+        val response = playlistGetRequest(URLs.PLAYLISTS, token)
         if (response.length() > 0) {
             playlists =
                 om.readValue(response.toString(), arrayOf(PlaylistDTO())::class.java).toList()

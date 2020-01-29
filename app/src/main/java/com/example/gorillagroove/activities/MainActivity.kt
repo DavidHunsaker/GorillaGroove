@@ -72,7 +72,7 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
             val passwordFieldText = passwordField.text.toString()
 
             val response =
-                runBlocking { loginRequest(URLs.LOGIN, emailFieldText, passwordFieldText) }
+                loginRequest(URLs.LOGIN, emailFieldText, passwordFieldText)
 
             if (!response.has("token")) {
                 Toast.makeText(

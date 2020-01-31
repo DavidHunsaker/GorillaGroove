@@ -424,7 +424,11 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
         playCountDuration: Int,
         deviceId: String
     ) {
-        val trackId = songs[songPosition].track.id
+        val trackId = if(shuffle){
+            songs[currentSongPosition].track.id
+        } else {
+            songs[songPosition].track.id
+        }
         Log.d(
             "MusicPlayerService",
             "Marking track=$trackId as listened with:\nplayCountPosition=$playCountPosition\nplayerCurrentPosition=$playerCurrentPosition\nplayCountDuration=$playCountDuration"

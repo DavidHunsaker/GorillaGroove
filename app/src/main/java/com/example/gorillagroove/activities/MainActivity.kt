@@ -4,10 +4,8 @@ import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.widget.EditText
-import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.GravityCompat
 import com.example.gorillagroove.R
 import com.example.gorillagroove.client.loginRequest
 import com.example.gorillagroove.client.updateDevice
@@ -15,9 +13,8 @@ import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.model.User
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.utils.URLs
-import kotlinx.android.synthetic.main.activity_main.drawer_layout
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
-import kotlinx.android.synthetic.main.content_main.btn_login
+import kotlinx.android.synthetic.main.new_content_main.button_login
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -61,12 +58,12 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
         setContentView(R.layout.activity_main)
         setSupportActionBar(toolbar)
 
-        emailField = findViewById(R.id.editText2)
-        passwordField = findViewById(R.id.editText)
+        emailField = findViewById(R.id.edit_text_email)
+        passwordField = findViewById(R.id.edit_text_password)
 
         emailField.requestFocus()
 
-        btn_login.setOnClickListener {
+        button_login.setOnClickListener {
 
             val emailFieldText = emailField.text.toString()
             val passwordFieldText = passwordField.text.toString()
@@ -84,8 +81,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                 val token = response["token"].toString()
                 val userName = response["username"].toString()
                 val email = response["email"].toString()
-
-                findViewById<TextView>(R.id.tv_nav_header).text = userName
 
                 val user = runBlocking {
                     withContext(Dispatchers.IO) {
@@ -111,14 +106,6 @@ class MainActivity : AppCompatActivity(), CoroutineScope by MainScope() {
                 emailField.requestFocus()
                 startActivity(createPlaylistIntent(user!!))
             }
-        }
-    }
-
-    override fun onBackPressed() {
-        if (drawer_layout.isDrawerOpen(GravityCompat.START)) {
-            drawer_layout.closeDrawer(GravityCompat.START)
-        } else {
-            super.onBackPressed()
         }
     }
 

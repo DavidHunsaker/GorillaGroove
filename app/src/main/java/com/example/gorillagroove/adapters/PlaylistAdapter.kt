@@ -15,7 +15,7 @@ class PlaylistAdapter(private val values: List<PlaylistSongDTO>) :
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val itemView =
-            LayoutInflater.from(parent.context).inflate(R.layout.playlist_song_item, parent, false)
+            LayoutInflater.from(parent.context).inflate(R.layout.updated_playlist_song_item, parent, false)
         return ViewHolder(itemView)
     }
 
@@ -24,7 +24,15 @@ class PlaylistAdapter(private val values: List<PlaylistSongDTO>) :
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         holder.songTitle.text = values[position].track.name
         holder.artist.text = values[position].track.artist
+        holder.album.text = values[position].track.album
+        holder.duration.text = values[position].track.length.getSongTime()
         holder.itemView.tag = position
+    }
+
+    private fun Long.getSongTime(): String {
+        val minutes = this / 60
+        val seconds = this % 60
+        return "$minutes:${String.format("%02d", seconds)}"
     }
 
     fun setClickListener(itemClickListener: OnItemClickListener) {
@@ -34,8 +42,10 @@ class PlaylistAdapter(private val values: List<PlaylistSongDTO>) :
     inner class ViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView),
         View.OnClickListener {
         // each data item is just a string in this case
-        val songTitle: TextView = itemView.findViewById(R.id.tv_song_title)
-        val artist: TextView = itemView.findViewById(R.id.tv_artist_name)
+        val songTitle: TextView = itemView.findViewById(R.id.textView_song_title)
+        val artist: TextView = itemView.findViewById(R.id.textView_artist_name)
+        val album: TextView = itemView.findViewById(R.id.textView_album_name)
+        val duration: TextView = itemView.findViewById(R.id.textView_song_duration)
 
         init {
             itemView.setOnClickListener(this)

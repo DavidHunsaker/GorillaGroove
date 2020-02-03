@@ -14,6 +14,7 @@ import android.view.Menu
 import android.view.MenuItem
 import android.view.View
 import android.widget.MediaController.MediaPlayerControl
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.ActionBarDrawerToggle
 import androidx.appcompat.app.AppCompatActivity
@@ -41,6 +42,7 @@ import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_playlist.drawer_layout
 import kotlinx.android.synthetic.main.activity_playlist.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
+import kotlinx.android.synthetic.main.nav_header_main.view.tv_nav_header
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -102,6 +104,10 @@ class PlaylistActivity : AppCompatActivity(),
         userName = intent.getStringExtra("username")
         email = intent.getStringExtra("email")
         deviceId = intent.getStringExtra("deviceId")
+
+        val header = nav_view.getHeaderView(0)
+        val navHeaderText = header.findViewById(R.id.tv_nav_header) as TextView
+        navHeaderText.text = userName
 
         loadLibrarySongs()
         requestUsers()

@@ -13,6 +13,7 @@ import android.util.Log
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.Button
 import android.widget.MediaController.MediaPlayerControl
 import android.widget.TextView
 import android.widget.Toast
@@ -26,7 +27,6 @@ import com.example.gorillagroove.adapters.OnItemClickListener
 import com.example.gorillagroove.adapters.PlaylistAdapter
 import com.example.gorillagroove.client.authenticatedGetRequest
 import com.example.gorillagroove.client.playlistGetRequest
-import com.example.gorillagroove.controller.MusicController
 import com.example.gorillagroove.db.GroovinDB
 import com.example.gorillagroove.db.repository.UserRepository
 import com.example.gorillagroove.dto.PlaylistDTO
@@ -42,7 +42,6 @@ import com.google.android.material.navigation.NavigationView
 import kotlinx.android.synthetic.main.activity_playlist.drawer_layout
 import kotlinx.android.synthetic.main.activity_playlist.nav_view
 import kotlinx.android.synthetic.main.app_bar_main.toolbar
-import kotlinx.android.synthetic.main.nav_header_main.view.tv_nav_header
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
@@ -74,7 +73,7 @@ class PlaylistActivity : AppCompatActivity(),
 
     private lateinit var recyclerView: RecyclerView
     private lateinit var repository: UserRepository
-    private lateinit var controller: MusicController
+    //    private lateinit var controller: MusicController
     private var songCurrentPosition = 0
     private var songCurrentDuration = 0
 
@@ -109,21 +108,53 @@ class PlaylistActivity : AppCompatActivity(),
         val navHeaderText = header.findViewById(R.id.tv_nav_header) as TextView
         navHeaderText.text = userName
 
+        val shuffleButton: Button = findViewById(R.id.button_expanded_nav_shuffle)
+        shuffleButton.setOnClickListener {
+            when(musicPlayerService!!.setShuffle()){
+                true -> {
+                    it.setBackgroundResource(R.drawable.shuffle_white)
+                }
+                false -> {
+                    it.setBackgroundResource(R.drawable.shuffle_inactive)
+                }
+            }
+        }
+
+        val playButton: Button = findViewById(R.id.button_expanded_nav_play)
+        playButton.setOnClickListener {
+            when (playbackPaused) {
+                true -> {
+                    it.setBackgroundResource(android.R.drawable.ic_media_pause)
+                    play()
+                }
+                false -> {
+                    it.setBackgroundResource(android.R.drawable.ic_media_play)
+                    pause()
+                }
+            }
+        }
+
+        val nextButton: Button = findViewById(R.id.button_expanded_nav_next)
+        nextButton.setOnClickListener { playNext() }
+
+        val previousButton: Button = findViewById(R.id.button_expanded_nav_previous)
+        previousButton.setOnClickListener { playPrevious() }
+
         loadLibrarySongs()
         requestUsers()
         requestPlaylists()
-        setController()
+//        setController()
 
         nav_view.setNavigationItemSelectedListener(this@PlaylistActivity)
     }
 
-    override fun onWindowFocusChanged(hasFocus: Boolean) {
-        super.onWindowFocusChanged(hasFocus)
-        if (controller.height > 0) {
-            nav_view.setPadding(0, 0, 0, controller.height)
-            recyclerView.setPadding(0, toolbar.height, 0, controller.height)
-        }
-    }
+//    override fun onWindowFocusChanged(hasFocus: Boolean) {
+//        super.onWindowFocusChanged(hasFocus)
+//        if (controller.height > 0) {
+//            nav_view.setPadding(0, 0, 0, controller.height)
+//            recyclerView.setPadding(0, toolbar.height, 0, controller.height)
+//        }
+//    }
 
     private fun loadLibrarySongs() {
         val response = authenticatedGetRequest(URLs.LIBRARY, token)
@@ -226,10 +257,10 @@ class PlaylistActivity : AppCompatActivity(),
     override fun onClick(view: View, position: Int) {
         Log.i("PlaylistActivity", "onClick called!")
         musicPlayerService!!.setSong(position)
-        setController()
+//        setController()
         playbackPaused = false
         musicPlayerService!!.playSong()
-        controller.show(0) // Passing 0 so controller always shows
+//        controller.show(0) // Passing 0 so controller always shows
     }
 
     override fun onBackPressed() {
@@ -285,21 +316,21 @@ class PlaylistActivity : AppCompatActivity(),
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
     fun onMediaPlayerLoadedEvent(event: MediaPlayerLoadedEvent) {
         Log.i("EventBus", "Message received ${event.message}")
-        controller.show(0)
+//        controller.show(0)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
     fun onAudioFocusLosses(event: MediaPlayerTransientAudioLossEvent) {
         Log.i("EventBus", "MessageReceived ${event.message}")
         pause()
-        controller.show(0)
+//        controller.show(0)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
     fun onPauseEvent(event: MediaPlayerPauseEvent) {
         Log.i("EventBus", "MessageReceived ${event.message}")
         pause()
-        controller.show(0)
+//        controller.show(0)
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN_ORDERED)
@@ -320,31 +351,31 @@ class PlaylistActivity : AppCompatActivity(),
         playPrevious()
     }
 
-    private fun setController() {
-        controller = MusicController(this@PlaylistActivity)
-        controller.setPrevNextListeners({ playNext() }, { playPrevious() })
-        controller.setMediaPlayer(this)
-        controller.setAnchorView(findViewById(R.id.frame_layout))
-        controller.isEnabled = true
-        playbackPaused = false
-    }
+//    private fun setController() {
+//        controller = MusicController(this@PlaylistActivity)
+//        controller.setPrevNextListeners({ playNext() }, { playPrevious() })
+//        controller.setMediaPlayer(this)
+//        controller.setAnchorView(findViewById(R.id.frame_layout))
+//        controller.isEnabled = true
+//        playbackPaused = false
+//    }
 
     private fun playNext() {
         musicPlayerService!!.playNext()
         if (playbackPaused) {
-            setController()
+//            setController()
             playbackPaused = false
         }
-        controller.show(0)
+//        controller.show(0)
     }
 
     private fun playPrevious() {
         musicPlayerService!!.playPrevious()
         if (playbackPaused) {
-            setController()
+//            setController()
             playbackPaused = false
         }
-        controller.show(0)
+//        controller.show(0)
     }
 
     override fun isPlaying(): Boolean {
@@ -365,6 +396,11 @@ class PlaylistActivity : AppCompatActivity(),
     override fun pause() {
         playbackPaused = true
         musicPlayerService!!.pausePlayer()
+    }
+
+    fun play() {
+        playbackPaused = false
+        musicPlayerService!!.start()
     }
 
     override fun seekTo(pos: Int) {
@@ -397,7 +433,7 @@ class PlaylistActivity : AppCompatActivity(),
     override fun onResume() {
         super.onResume()
         if (playbackPaused) {
-            setController()
+//            setController()
             playbackPaused = false
         }
     }

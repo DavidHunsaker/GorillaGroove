@@ -43,11 +43,10 @@
     <Button
             android:id="@+id/button_expanded_nav_repeat"
             style="@style/Widget.AppCompat.Button.Borderless"
-            android:layout_width="20dp"
-            android:layout_height="20dp"
+            android:layout_width="24dp"
+            android:layout_height="24dp"
             android:layout_marginTop="15dp"
-            android:text="Repeat"
-            android:textColor="#FFFFFF"
+            android:background="@drawable/repeat_inactive"
             app:layout_constraintLeft_toLeftOf="parent"
             app:layout_constraintRight_toLeftOf="@id/button_expanded_nav_previous"
 
@@ -87,7 +86,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginEnd="13dp"
-            android:text="0:27"
+            android:text="00:27"
             android:textColor="#FFFFFF"
             app:layout_constraintRight_toLeftOf="@id/seekBar_expanded_nav"
             app:layout_constraintTop_toBottomOf="@id/textView_expanded_nav_current_song" />
@@ -97,7 +96,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginStart="13dp"
-            android:text="3:11"
+            android:text="03:11"
             android:textColor="#FFFFFF"
             app:layout_constraintLeft_toRightOf="@id/seekBar_expanded_nav"
             app:layout_constraintTop_toBottomOf="@id/textView_expanded_nav_current_song" />

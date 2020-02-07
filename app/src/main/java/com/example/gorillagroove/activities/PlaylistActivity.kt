@@ -60,6 +60,7 @@ class PlaylistActivity : AppCompatActivity(),
         ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
 
     private var musicBound = false
+    private var repeatEnabled = false
     private var token: String = ""
     private var email: String = ""
     private var userName: String = ""
@@ -112,10 +113,24 @@ class PlaylistActivity : AppCompatActivity(),
         shuffleButton.setOnClickListener {
             when(musicPlayerService!!.setShuffle()){
                 true -> {
-                    it.setBackgroundResource(R.drawable.shuffle_white)
+                    it.setBackgroundResource(R.drawable.shuffle_active)
                 }
                 false -> {
                     it.setBackgroundResource(R.drawable.shuffle_inactive)
+                }
+            }
+        }
+
+        val repeatButton: Button = findViewById(R.id.button_expanded_nav_repeat)
+        repeatButton.setOnClickListener {
+            repeatEnabled = when(repeatEnabled) {
+                true -> {
+                    it.setBackgroundResource(R.drawable.repeat_inactive)
+                    false
+                }
+                false -> {
+                    it.setBackgroundResource(R.drawable.repeat_active)
+                    true
                 }
             }
         }

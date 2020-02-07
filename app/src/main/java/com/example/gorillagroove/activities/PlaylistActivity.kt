@@ -294,10 +294,6 @@ class PlaylistActivity : AppCompatActivity(),
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
-            R.id.action_shuffle -> {
-                val message = if (musicPlayerService!!.setShuffle()) "Shuffle On" else "Shuffle Off"
-                Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
-            }
             R.id.action_end -> {
                 stopService(playIntent)
                 musicPlayerService = null

@@ -11,13 +11,6 @@
             android:title="@string/end"
             android:icon="@drawable/end"
             android:orderInCategory="2"
-            app:showAsAction="ifRoom"
-            />
-
-    <item android:id="@+id/action_shuffle"
-            android:title="@string/shuffle"
-            android:icon="@drawable/shuffle"
-            android:orderInCategory="1"
-            app:showAsAction="ifRoom"
+            app:showAsAction="never"
             />
 </menu>

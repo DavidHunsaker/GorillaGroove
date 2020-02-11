@@ -447,12 +447,14 @@ class MusicPlayerService : Service(), MediaPlayer.OnPreparedListener, MediaPlaye
 
     override fun onAudioFocusChange(focusChange: Int) {
         when (focusChange) {
-            AudioManager.AUDIOFOCUS_GAIN, AudioManager.AUDIOFOCUS_GAIN_TRANSIENT -> {
+            AudioManager.AUDIOFOCUS_GAIN -> {
                 Log.d("MusicPlayerService", "Audio Focus Gained")
                 hasAudioFocus = true
-                if (!paused) player.start()
-                EventBus.getDefault()
-                    .post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
+                if (!paused) {
+                    player.start()
+                    EventBus.getDefault()
+                        .post(MediaPlayerLoadedEvent("Media Player Loaded, now Showing"))
+                }
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT, AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
                 Log.d("MusicPlayerService", "Audio Focus Loss Transient")

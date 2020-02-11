@@ -11,7 +11,7 @@ import java.io.IOException
 import kotlin.concurrent.thread
 
 private val client = OkHttpClient()
-private const val VERSION = "1.1.5"
+private const val VERSION = "1.1.51"
 
 fun loginRequest(url: String, email: String, password: String): JSONObject {
     val body = """{ "email": "$email", "password": "$password" }""".trimIndent()
